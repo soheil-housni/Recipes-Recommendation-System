@@ -1,0 +1,16 @@
+from torch.utils.data import Dataset
+
+class CreationDataset(Dataset):
+    def __init__(self,
+                 df):
+        self.df=df
+    
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self,
+                    idx):
+        item={
+            col:self.df.iloc[idx][col] for col in self.df.columns
+        }
+        return item
