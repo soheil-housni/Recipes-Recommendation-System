@@ -5,7 +5,7 @@ class CollateFunction():
     def __init__(self,tokenizer):
         self.tokenizer=tokenizer
 
-    def CollateFunction(self,
+    def collate_fn(self,
                         batch):
         user_id=[b["user_id"] for b in batch]
         recipe_id=[b["recipe_id"] for b in batch]
@@ -14,6 +14,7 @@ class CollateFunction():
         technique_recipes=[torch.tensor(b["techniques_recipes"]) for b in batch]
         calorie_level=[b["calorie_level"] for b in batch]
         ingredient_ids=[torch.tensor(b["ingredient_ids"]) for b in batch]
+        ingredient_ids_continuous=[torch.tensor(b["ingredient_ids_continuous"]) for b in batch]
         techniques_users=[torch.tensor(b["techniques_users"]) for b in batch]
         items=[torch.tensor(b["items"]) for b in batch]
         n_items=[b["n_items"] for b in batch]
@@ -29,22 +30,19 @@ class CollateFunction():
         tags=[b["tags"] for b in batch]
 
 
-        tokenized_steps=self.tokenizer(steps)
-        tokenized_names=self.tokenizer(name)
-        tokenized_descriptions=self.tokenizer(description)
-        tokenized_tags=self.tokenizer(tags)
+        tokenized_steps=self.tokenizer(steps,return_tensors="pt",max_length=256,truncation=True,padding=True)
+        tokenized_names=self.tokenizer(name,return_tensors="pt",max_length=128,truncation=True,padding=True)
+        tokenized_descriptions=self.tokenizer(description,return_tensors="pt",max_length=256,truncation=True,padding=True)
+        tokenized_tags=self.tokenizer(tags,return_tensors="pt",max_length=256,truncation=True,padding=True)
 
-        for key in list(tokenized_steps.keys()):
-            tokenized_steps[key+"_steps"]=tokenized_steps.pop(key)
+        tokenized_steps={key+"_steps":tokenized_steps[key] for key in list(tokenized_steps.keys())}
         
-        for key in list(tokenized_names.keys()):
-            tokenized_steps[key+"_names"]=tokenized_steps.pop(key)
+        tokenized_names={key+"_names":tokenized_names[key] for key in list(tokenized_names.keys())}
 
-        for key in list(tokenized_descriptions.keys()):
-            tokenized_steps[key+"_descriptions"]=tokenized_steps.pop(key)
+        tokenized_descriptions={key+"_descriptions":tokenized_descriptions[key] for key in list(tokenized_descriptions.keys())}
 
-        for key in list(tokenized_tags.keys()):
-            tokenized_steps[key+"_tags"]=tokenized_steps.pop(key)
+        tokenized_tags={key+"_tags":tokenized_tags[key] for key in list(tokenized_tags.keys())}
+
 
         inputs={
             "user_id": torch.tensor(user_id).view(-1,1),
@@ -62,6 +60,7 @@ class CollateFunction():
             "minutes": torch.tensor(minutes).view(-1,1),
             "nutrition": torch.stack(nutrition),
             "n_ingredients": torch.tensor(n_ingredients).view(-1,1),
+            "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous)
         }
 
         list_tokenized_dicts=[tokenized_steps,tokenized_names,tokenized_descriptions,tokenized_tags]

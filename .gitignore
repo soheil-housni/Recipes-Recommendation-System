@@ -215,3 +215,4 @@ models/
 # Ignore global
 *.pt
 *.pth
+*.parquet

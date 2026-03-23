@@ -5,9 +5,12 @@ import ast
 
 class DataFramePreprocessing:
 
-    def __init__(self,full_df):
+    def __init__(self,full_df,max_len_ingredients,max_len_items):
         self.full_df_processed=full_df.copy()
 
+
+        self.max_len_ingredients=max_len_ingredients
+        self.max_len_items=max_len_items
 
         self.agg_user_ratings=self.full_df_processed.groupby("user_id")["rating"].agg(["count",lambda x: x.mode().iloc[0]]).rename(columns={'<lambda_0>':"mode"})
         self.agg_recipe_ratings=self.full_df_processed.groupby("recipe_id")["rating"].agg(["count",lambda x: x.mode().iloc[0]]).rename(columns={'<lambda_0>':"mode"})
@@ -59,30 +62,22 @@ class DataFramePreprocessing:
         self.full_df_processed=self.full_df_processed.apply(self.process_row,axis=1)
 
 
-        self.full_df_processed["len_items"]=self.full_df_processed["items"].apply(lambda x : len(x) if isinstance(x,list) else x)
-        self.max_len_items=self.full_df_processed["len_items"].max()
-
         self.full_df_processed["items"]=self.full_df_processed["items"].apply(lambda x: list(np.pad(x,pad_width=(0,self.max_len_items-len(x)))))
         self.full_df_processed["ratings"]=self.full_df_processed["ratings"].apply(lambda x: list(np.pad(x,pad_width=(0,self.max_len_items-len(x)))))
 
-        self.full_df_processed.drop(columns=["len_items"],inplace=True)
 
-
+        self.full_df_processed["ingredient_ids"]=self.full_df_processed["ingredient_ids"].apply(lambda x: list(np.pad(x,pad_width=(0,self.max_len_ingredients-len(x)))))
 
     def process_row(self,row):
         row["techniques_recipes"] = list(map(int, ast.literal_eval(row["techniques_recipes"])))
         row["ingredient_ids"] = list(map(int, ast.literal_eval(row["ingredient_ids"])))
         row["techniques_users"] = list(map(int, ast.literal_eval(row["techniques_users"])))
-        row["items"] = list(map(int, ast.literal_eval(row["items"])))
+        row["items"] = list(map(lambda x: int(x)+1, ast.literal_eval(row["items"])))
         row["ratings"] = list(map(int, ast.literal_eval(row["ratings"])))
         row["nutrition"] = list(map(float, ast.literal_eval(row["nutrition"])))
         row["tags"] = " [SEP] ".join(ast.literal_eval(row["tags"].replace("-"," ")))
         row["steps"] = " [SEP] ".join(ast.literal_eval(row["steps"]))
         return row
-    
-
-    def get_max_len_items(self):
-        return self.max_len_items
 
 
     
