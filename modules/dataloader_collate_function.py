@@ -28,6 +28,7 @@ class CollateFunction():
         name=[b["name"] for b in batch]
         description=[b["description"] for b in batch]
         tags=[b["tags"] for b in batch]
+        full_text=[b["full_text"] for b in batch]
 
 
         tokenized_steps=self.tokenizer(steps,return_tensors="pt",max_length=256,truncation=True,padding=True)
@@ -42,6 +43,10 @@ class CollateFunction():
         tokenized_descriptions={key+"_descriptions":tokenized_descriptions[key] for key in list(tokenized_descriptions.keys())}
 
         tokenized_tags={key+"_tags":tokenized_tags[key] for key in list(tokenized_tags.keys())}
+
+        tokenized_full_text=self.tokenizer(full_text,return_tensors="pt",max_length=512,truncation=True,padding=True)
+        tokenized_full_text={key+"_full":tokenized_tags[key] for key in list(tokenized_tags.keys())}
+
 
 
         inputs={
@@ -60,10 +65,10 @@ class CollateFunction():
             "minutes": torch.tensor(minutes).view(-1,1),
             "nutrition": torch.stack(nutrition),
             "n_ingredients": torch.tensor(n_ingredients).view(-1,1),
-            "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous)
+            "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous),
         }
 
-        list_tokenized_dicts=[tokenized_steps,tokenized_names,tokenized_descriptions,tokenized_tags]
+        list_tokenized_dicts=[tokenized_steps,tokenized_names,tokenized_descriptions,tokenized_tags,tokenized_full_text]
 
         for dict in list_tokenized_dicts:
             inputs.update(dict)
