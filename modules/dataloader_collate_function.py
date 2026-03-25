@@ -9,20 +9,20 @@ class CollateFunction():
                         batch):
         user_id=[b["user_id"] for b in batch]
         recipe_id=[b["recipe_id"] for b in batch]
-        rating=[b["rating"] for b in batch]
+        rating_scaled=[b["rating_scaled"] for b in batch]
         i=[b["i"] for b in batch]
         technique_recipes=[torch.tensor(b["techniques_recipes"]) for b in batch]
-        calorie_level=[b["calorie_level"] for b in batch]
+        calorie_level_scaled=[b["calorie_level_scaled"] for b in batch]
         ingredient_ids=[torch.tensor(b["ingredient_ids"]) for b in batch]
         ingredient_ids_continuous=[torch.tensor(b["ingredient_ids_continuous"]) for b in batch]
         techniques_users=[torch.tensor(b["techniques_users"]) for b in batch]
         items=[torch.tensor(b["items"]) for b in batch]
-        n_items=[b["n_items"] for b in batch]
-        ratings=[torch.tensor(b["ratings"]) for b in batch]
-        n_ratings=[b["n_ratings"] for b in batch]
-        minutes=[b["minutes"] for b in batch]
+        n_items_scaled=[b["n_items_scaled"] for b in batch]
+        ratings_scaled=[torch.tensor(b["ratings"]) for b in batch]
+        n_ratings_scaled=[b["n_ratings_scaled"] for b in batch]
+        minutes_scaled=[b["minutes"] for b in batch]
         nutrition=[torch.tensor(b["nutrition"]) for b in batch]
-        n_ingredients=[b["n_ingredients"] for b in batch]
+        n_ingredients_scaled=[b["n_ingredients_scaled"] for b in batch]
 
         steps=[b["steps"] for b in batch]
         name=[b["name"] for b in batch]
@@ -52,19 +52,19 @@ class CollateFunction():
         inputs={
             "user_id": torch.tensor(user_id).view(-1,1),
             "recipe_id": torch.tensor(recipe_id).view(-1,1),
-            "rating": torch.tensor(rating).view(-1,1),
+            "rating_scaled": torch.tensor(rating_scaled).view(-1,1),
             "i": torch.tensor(i).view(-1,1),
             "technique_recipes": torch.stack(technique_recipes),
-            "calorie_level": torch.tensor(calorie_level).view(-1,1),
+            "calorie_level_scaled": torch.tensor(calorie_level_scaled).view(-1,1),
             "ingredient_ids": torch.stack(ingredient_ids),
             "techniques_users": torch.stack(techniques_users),
             "items": torch.stack(items),
-            "n_items": torch.tensor(n_items).view(-1,1),
-            "ratings": torch.stack(ratings),
-            "n_ratings": torch.tensor(n_ratings).view(-1,1),
-            "minutes": torch.tensor(minutes).view(-1,1),
+            "n_items_scaled": torch.tensor(n_items_scaled).view(-1,1),
+            "ratings_scaled": torch.stack(ratings_scaled),
+            "n_ratings_scaled": torch.tensor(n_ratings_scaled).view(-1,1),
+            "minutes_scaled": torch.tensor(minutes_scaled).view(-1,1),
             "nutrition": torch.stack(nutrition),
-            "n_ingredients": torch.tensor(n_ingredients).view(-1,1),
+            "n_ingredients_scaled": torch.tensor(n_ingredients_scaled).view(-1,1),
             "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous),
         }
 
