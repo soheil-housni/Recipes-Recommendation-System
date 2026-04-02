@@ -1,0 +1,14 @@
+artifact_uri: file:///content/drive/MyDrive/Recipe recommendation system/modules/mlflow_runs/mlruns/282575499087463590/b8e97487efbb42678ae8f2d5dc829fb5/artifacts
+end_time: 1775159604169
+entry_point_name: ''
+experiment_id: '282575499087463590'
+lifecycle_stage: active
+run_id: b8e97487efbb42678ae8f2d5dc829fb5
+run_name: lr_0.01_weight_decay_0.0005_dropout_0.3
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775159544111
+status: 3
+tags: []
+user_id: root

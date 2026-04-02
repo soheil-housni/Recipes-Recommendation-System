@@ -8,6 +8,7 @@ class RecommendationModel(nn.Module):
     def __init__(self,
                  hashed_ingredients_ids_encoded_embeddings,
                  hashed_recipes_ids_encoded_embeddings,
+                 device,
                  #distilbert_model,
                  ingredient_id_emb_dim:int=1024,
                  recipe_id_emb_dim:int=1024,
@@ -21,8 +22,13 @@ class RecommendationModel(nn.Module):
 
         self.dropout=dropout
 
+        self.device=device
+
         self.hashed_ingredients_ids_encoded_embeddings=hashed_ingredients_ids_encoded_embeddings
         self.hashed_recipes_ids_encoded_embeddings=hashed_recipes_ids_encoded_embeddings
+
+        self.hashed_ingredients_ids_encoded_embeddings=self.hashed_ingredients_ids_encoded_embeddings.to(self.device)
+        self.hashed_recipes_ids_encoded_embeddings=hashed_recipes_ids_encoded_embeddings.to(self.device)
 
         self.ingredient_id_emb_dim=ingredient_id_emb_dim
         self.recipe_id_emb_dim=recipe_id_emb_dim

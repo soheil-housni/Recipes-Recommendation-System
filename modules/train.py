@@ -152,8 +152,8 @@ class Train():
                     )
 
                     val_batch_total_losses.append(loss.detach().item())
-                    val_batch_contrastive_losses.append(self.criterion.access_loss_components["Contrastive loss"])
-                    val_batch_mse_losses.append(self.criterion.access_loss_components["MSE loss"])
+                    val_batch_contrastive_losses.append(self.criterion.access_loss_components()["Contrastive loss"])
+                    val_batch_mse_losses.append(self.criterion.access_loss_components()["MSE loss"])
             
             
             train_total_loss=np.mean(train_batch_total_losses)

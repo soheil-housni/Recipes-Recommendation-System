@@ -4,10 +4,14 @@ from torch.nn import MSELoss
 
 
 class ContrastiveMSELoss(nn.Module):
-    def __init__(self,alpha:int=0.5):
+    def __init__(self,
+                 alpha:float=0.5,
+                 temperature:float=0.2):
+        
         super().__init__()
         self.alpha=alpha
         self.mse_loss=MSELoss()
+        self.temperature=temperature
 
     def access_loss_components(self):
         return {"Contrastive loss":self.contrastive_loss.item(),"MSE loss":self.mse_loss_value.item(),"Total loss":self.total_loss.item()}
@@ -26,10 +30,11 @@ class ContrastiveMSELoss(nn.Module):
         recipe_embeddings=outputs["recipe_embeddings"]
         N=len(user_embeddings)
         cos_similarities_matrix=nn.functional.cosine_similarity(user_embeddings.unsqueeze(0),recipe_embeddings.unsqueeze(1),dim=2)
-        logits=nn.functional.log_softmax(cos_similarities_matrix,dim=1)
-        ratings_scaled_matrix=torch.full((N,N),0.1,device=user_embeddings.device)
+        logits=cos_similarities_matrix/self.temperature
+        log_probs=nn.functional.log_softmax(logits,dim=1)
+        ratings_scaled_matrix=torch.full((N,N),0,device=user_embeddings.device,dtype=torch.float32)
         ratings_scaled_matrix[torch.arange(N),torch.arange(N)]=rating_scaled.squeeze()
-        contrastive_loss=logits*ratings_scaled_matrix
+        contrastive_loss=log_probs*ratings_scaled_matrix
         self.contrastive_loss=-(contrastive_loss.sum(dim=1)).mean()
         rating_scaled=rating_scaled.squeeze(1)
         self.mse_loss_value=self.mse_loss(rating_scaled,outputs["cos_similarities_scaled"])
