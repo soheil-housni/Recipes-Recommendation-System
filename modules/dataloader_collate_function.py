@@ -1,6 +1,15 @@
 from torch.utils.data import DataLoader
 import torch
 
+
+class BertCollateFunction():
+    def __init__(self,tokenizer):
+        self.tokenizer=tokenizer
+    def collate_fn(self,batch):
+        full_text=[b["full_text"] for b in batch]
+        tokenized_full_text=self.tokenizer(full_text,return_tensors="pt",max_length=512,truncation=True,padding="max_length")
+        return tokenized_full_text
+
 class CollateFunction():
     def __init__(self,tokenizer):
         self.tokenizer=tokenizer
@@ -24,6 +33,7 @@ class CollateFunction():
         nutrition=[torch.tensor(b["nutrition"]) for b in batch]
         n_ingredients_scaled=[b["n_ingredients_scaled"] for b in batch]
 
+        """
         steps=[b["steps"] for b in batch]
         name=[b["name"] for b in batch]
         description=[b["description"] for b in batch]
@@ -45,33 +55,39 @@ class CollateFunction():
         tokenized_tags={key+"_tags":tokenized_tags[key] for key in list(tokenized_tags.keys())}
 
         tokenized_full_text=self.tokenizer(full_text,return_tensors="pt",max_length=512,truncation=True,padding=True)
-        tokenized_full_text={key+"_full":tokenized_tags[key] for key in list(tokenized_tags.keys())}
-
-
+        tokenized_full_text={key+"_full":tokenized_full_text[key] for key in list(tokenized_full_text.keys())}
+        """
+        cls_embeddings=[b["cls_embeddings"] for b in batch]
+        mean_embeddings=[b["mean_embeddings"] for b in batch]
 
         inputs={
-            "user_id": torch.tensor(user_id).view(-1,1),
-            "recipe_id": torch.tensor(recipe_id).view(-1,1),
-            "rating_scaled": torch.tensor(rating_scaled).view(-1,1),
-            "i": torch.tensor(i).view(-1,1),
-            "technique_recipes": torch.stack(technique_recipes),
-            "calorie_level_scaled": torch.tensor(calorie_level_scaled).view(-1,1),
-            "ingredient_ids": torch.stack(ingredient_ids),
-            "techniques_users": torch.stack(techniques_users),
-            "items": torch.stack(items),
-            "n_items_scaled": torch.tensor(n_items_scaled).view(-1,1),
-            "ratings_scaled": torch.stack(ratings_scaled),
-            "n_ratings_scaled": torch.tensor(n_ratings_scaled).view(-1,1),
-            "minutes_scaled": torch.tensor(minutes_scaled).view(-1,1),
-            "nutrition": torch.stack(nutrition),
-            "n_ingredients_scaled": torch.tensor(n_ingredients_scaled).view(-1,1),
-            "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous),
+            "user_id": torch.tensor(user_id,dtype=torch.long).view(-1,1),
+            "recipe_id": torch.tensor(recipe_id, dtype=torch.long).view(-1,1),
+            "rating_scaled": torch.tensor(rating_scaled, dtype=torch.float32).view(-1,1),
+            "i": torch.tensor(i, dtype=torch.long).view(-1,1),
+            "technique_recipes": torch.stack(technique_recipes).float(),
+            "calorie_level_scaled": torch.tensor(calorie_level_scaled, dtype=torch.float32).view(-1,1),
+            "ingredient_ids": torch.stack(ingredient_ids).float(),
+            "techniques_users": torch.stack(techniques_users).float(),
+            "items": torch.stack(items).long(),
+            "n_items_scaled": torch.tensor(n_items_scaled, dtype=torch.float32).view(-1,1),
+            "ratings_scaled": torch.stack(ratings_scaled).float(),
+            "n_ratings_scaled": torch.tensor(n_ratings_scaled, dtype=torch.float32).view(-1,1),
+            "minutes_scaled": torch.tensor(minutes_scaled, dtype=torch.float32).view(-1,1),
+            "nutrition": torch.stack(nutrition).float(),
+            "n_ingredients_scaled": torch.tensor(n_ingredients_scaled, dtype=torch.float32).view(-1,1),
+            "ingredient_ids_continuous":torch.stack(ingredient_ids_continuous).long(),
+            "cls_embeddings":torch.stack(cls_embeddings,dim=0),
+            "mean_embeddings":torch.stack(mean_embeddings,dim=0)
+
         }
 
+        """
         list_tokenized_dicts=[tokenized_steps,tokenized_names,tokenized_descriptions,tokenized_tags,tokenized_full_text]
 
         for dict in list_tokenized_dicts:
             inputs.update(dict)
+        """
 
         return inputs
 
