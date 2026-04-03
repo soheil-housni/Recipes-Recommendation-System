@@ -14,6 +14,7 @@ class RecommendationModel(nn.Module):
                  recipe_id_emb_dim:int=1024,
                  distilbert_dmodel:int=768,
                  dropout:int=0.3,
+                 projec_dropout:int=0.1,
                  mean:bool=True
                  ):
         super().__init__()
@@ -21,6 +22,7 @@ class RecommendationModel(nn.Module):
         self.mean=mean
 
         self.dropout=dropout
+        self.projec_dropout=projec_dropout
 
         self.device=device
 
@@ -202,15 +204,15 @@ class RecommendationModel(nn.Module):
           encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous,:]
           encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
           encoded_ingredients_used=self.weighted_mean_ingredients(ingredient_ids_continuous,encoded_ingredient_ids)
-          encoded_ingredients_used=nn.functional.dropout(encoded_ingredients_used,p=self.dropout,training=self.training)
           projected_encoded_ingredients=self.projection_ingredient(encoded_ingredients_used)
+          projected_encoded_ingredients=nn.functional.dropout(projected_encoded_ingredients,p=self.projec_dropout,training=self.training)
           projected_encoded_ingredients=self.norm_encoded_ingredients(projected_encoded_ingredients)
 
           encoded_items=self.hashed_recipes_ids_encoded_embeddings[items,:]
           encoded_items=self.dhe_fnn_items(encoded_items)
           encoded_items_history=self.weighted_mean_items(items,encoded_items,ratings_scaled)
-          encoded_items_history=nn.functional.dropout(encoded_items_history,p=self.dropout,training=self.training)
           projected_encoded_items=self.projection_items(encoded_items_history)
+          projected_encoded_items=nn.functional.dropout(projected_encoded_items,p=self.projec_dropout,training=self.training)
           projected_encoded_items=self.norm_encoded_items(projected_encoded_items)
           
 
@@ -254,13 +256,13 @@ class RecommendationModel(nn.Module):
                raise ValueError("Need of the corresponding embedding for the pooling mode")
           
           projected_full_text=self.projection_full_text(pooled_full_text)
-          projected_full_text=nn.functional.dropout(projected_full_text,p=self.dropout,training=self.training)
+          projected_full_text=nn.functional.dropout(projected_full_text,p=self.projec_dropout,training=self.training)
           projected_full_text=self.norm_full_text(projected_full_text)
 
           concat_add_features_users=torch.cat([n_items_scaled,n_ratings_scaled],dim=1)
           concat_add_features_users=self.first_norm_add_features_users(concat_add_features_users)
           concat_add_features_users=self.projection_add_features_users(concat_add_features_users)
-          concat_add_features_users=nn.functional.dropout(concat_add_features_users,p=self.dropout,training=self.training)
+          concat_add_features_users=nn.functional.dropout(concat_add_features_users,p=self.projec_dropout,training=self.training)
           concat_add_features_users=self.norm_add_features_users(concat_add_features_users)
 
           concat_add_features_recipes=torch.cat([minutes_scaled,n_ingredients_scaled,calorie_level_scaled],dim=1)
@@ -271,17 +273,17 @@ class RecommendationModel(nn.Module):
 
           nutrition=self.first_norm_nutrition(nutrition)
           nutrition=self.projection_nutrition(nutrition)
-          nutrition=nn.functional.dropout(nutrition,p=self.dropout,training=self.training)
+          nutrition=nn.functional.dropout(nutrition,p=self.projec_dropout,training=self.training)
           nutrition=self.norm_nutrition(nutrition)
 
           technique_recipes=self.first_norm_techniques_recipes(technique_recipes)
           technique_recipes=self.projection_techniques_recipes(technique_recipes)
-          technique_recipes=nn.functional.dropout(technique_recipes,p=self.dropout,training=self.training)
+          technique_recipes=nn.functional.dropout(technique_recipes,p=self.projec_dropout,training=self.training)
           technique_recipes=self.norm_techniques_recipes(technique_recipes)
 
           techniques_users=self.first_norm_techniques_users(techniques_users)
           techniques_users=self.projection_techniques_users(techniques_users)
-          techniques_users=nn.functional.dropout(techniques_users,p=self.dropout,training=self.training)
+          techniques_users=nn.functional.dropout(techniques_users,p=self.projec_dropout,training=self.training)
           techniques_users=self.norm_techniques_users(techniques_users)
 
 

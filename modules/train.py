@@ -4,6 +4,7 @@ from transformers import get_linear_schedule_with_warmup
 import numpy as np
 from loguru import logger
 import mlflow
+import optuna
 
 class Train():
     def __init__(self,
@@ -12,6 +13,7 @@ class Train():
                  model,
                  device,
                  loss_fn,
+                 warmup_prop:float=0.1,
                  lr:float=0.01,
                  weight_decay:float=5e-4,
                  n_epochs:int=10,
@@ -31,13 +33,14 @@ class Train():
         self.n_epochs=n_epochs
         self.patience=patience
         self.min_improvement=min_improvement
+        self.warmup_prop=warmup_prop
         
         #distilbert_parameters,backbone_parameters=self.get_parameters()
         #self.optimizer=AdamW([{"params":distilbert_parameters,"lr":1e-5},{"params":backbone_parameters,"lr":self.lr}],weight_decay=self.weight_decay)
         self.optimizer=AdamW(params=self.model.parameters(),lr=self.lr,weight_decay=self.weight_decay)
 
         num_training_steps=len(train_dataloader)*n_epochs
-        num_warmup_steps=0.1*num_training_steps
+        num_warmup_steps=self.warmup_prop*num_training_steps
 
         self.scheduler=get_linear_schedule_with_warmup(optimizer=self.optimizer,num_training_steps=num_training_steps,num_warmup_steps=num_warmup_steps)
 
@@ -62,7 +65,7 @@ class Train():
     """
 
 
-    def run_training(self,path:str):
+    def run_training(self,path:str,trial:None):
 
         train_epoch_total_losses=[]
         val_epoch_total_losses=[]
@@ -200,6 +203,10 @@ class Train():
             if counter>=self.patience:
                 logger.warning(f"Training stops after {epoch} epochs")
                 break
+
+            trial.report(strict_best_total_loss, epoch)
+            if trial.should_prune():
+                raise optuna.exceptions.TrialPruned()
         
         performances={
             "epoch_train_total_losses": torch.tensor(train_epoch_total_losses),
@@ -236,6 +243,8 @@ class Train():
             model_name=model_name.replace(".",",")
             mlflow.set_tags({"lr": self.lr, "weight_decay": self.weight_decay, "dropout": self.model.dropout})
             mlflow.pytorch.log_model(best_model, model_name)
+
+            return strict_best_total_loss
 
                     
 
