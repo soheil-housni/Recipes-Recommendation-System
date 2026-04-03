@@ -197,7 +197,8 @@ class RecommendationModel(nn.Module):
                 cls_embeddings=None,
                 mean_embeddings=None
                 ):
-          
+          ingredient_ids_continuous=ingredient_ids_continuous.to("cpu")
+          items=items.to("cpu")
           encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous,:].to(self.device)
           encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
           encoded_ingredients_used=self.weighted_mean_ingredients(ingredient_ids_continuous,encoded_ingredient_ids)
