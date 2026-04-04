@@ -9,3 +9,4 @@ from .split import split_df
 from .train import Train
 from .loss_function import ContrastiveMSELoss
 from .bert_embeddings import BERTEmbeddingsExtractor
+from .optuna_function import OptunaFunction
