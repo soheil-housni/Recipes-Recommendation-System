@@ -26,8 +26,8 @@ class RecommendationModel(nn.Module):
 
         self.device=device
 
-        self.hashed_ingredients_ids_encoded_embeddings=hashed_ingredients_ids_encoded_embeddings
-        self.hashed_recipes_ids_encoded_embeddings=hashed_recipes_ids_encoded_embeddings
+        self.hashed_ingredients_ids_encoded_embeddings=hashed_ingredients_ids_encoded_embeddings.to("cpu")
+        self.hashed_recipes_ids_encoded_embeddings=hashed_recipes_ids_encoded_embeddings.to("cpu")
 
         self.ingredient_id_emb_dim=ingredient_id_emb_dim
         self.recipe_id_emb_dim=recipe_id_emb_dim
@@ -198,6 +198,7 @@ class RecommendationModel(nn.Module):
                 mean_embeddings=None
                 ):
           ingredient_ids_continuous_cpu=ingredient_ids_continuous.clone().cpu().long()
+          print(ingredient_ids_continuous_cpu.device)
           encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous_cpu].to(self.device)
           encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
           encoded_ingredients_used=self.weighted_mean_ingredients(ingredient_ids_continuous,encoded_ingredient_ids)
@@ -206,6 +207,7 @@ class RecommendationModel(nn.Module):
           projected_encoded_ingredients=self.norm_encoded_ingredients(projected_encoded_ingredients)
           
           items_cpu=items.clone().cpu().long()
+          print(items_cpu.device)
           encoded_items=self.hashed_recipes_ids_encoded_embeddings[items_cpu].to(self.device)
           encoded_items=self.dhe_fnn_items(encoded_items)
           encoded_items_history=self.weighted_mean_items(items,encoded_items,ratings_scaled)
