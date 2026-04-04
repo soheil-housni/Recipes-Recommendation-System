@@ -198,7 +198,7 @@ class RecommendationModel(nn.Module):
                 mean_embeddings=None
                 ):
           ingredient_ids_continuous_cpu=ingredient_ids_continuous.clone().cpu().long()
-          print(ingredient_ids_continuous_cpu.device())
+          print(ingredient_ids_continuous_cpu.device)
           encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous_cpu].to(self.device)
           print(encoded_ingredient_ids.device())
           encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
@@ -210,7 +210,7 @@ class RecommendationModel(nn.Module):
           items_cpu=items.clone().cpu().long()
           print(items_cpu.device())
           encoded_items=self.hashed_recipes_ids_encoded_embeddings[items_cpu].to(self.device)
-          print(encoded_ingredient_ids.device())
+          print(encoded_ingredient_ids.device)
           encoded_items=self.dhe_fnn_items(encoded_items)
           encoded_items_history=self.weighted_mean_items(items,encoded_items,ratings_scaled)
           projected_encoded_items=self.projection_items(encoded_items_history)
