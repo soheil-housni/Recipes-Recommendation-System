@@ -200,7 +200,7 @@ class RecommendationModel(nn.Module):
           ingredient_ids_continuous_cpu=ingredient_ids_continuous.clone().cpu().long()
           print(ingredient_ids_continuous_cpu.device)
           encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous_cpu].to(self.device)
-          print(encoded_ingredient_ids.device())
+          print(encoded_ingredient_ids.device)
           encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
           encoded_ingredients_used=self.weighted_mean_ingredients(ingredient_ids_continuous,encoded_ingredient_ids)
           projected_encoded_ingredients=self.projection_ingredient(encoded_ingredients_used)
