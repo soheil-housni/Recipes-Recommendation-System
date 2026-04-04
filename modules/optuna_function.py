@@ -49,8 +49,9 @@ class OptunaFunction():
                   trial):
         
         gc.collect()
-        torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
         try:
             batch_size = trial.suggest_categorical("batch_size",[32, 64])
             dropout = trial.suggest_float("dropout",0.05,0.3,step=0.05)
@@ -88,7 +89,7 @@ class OptunaFunction():
             del trainer
             del train_dataloader
             del val_dataloader
-
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
             gc.collect()
