@@ -208,7 +208,7 @@ class RecommendationModel(nn.Module):
           projected_encoded_ingredients=self.norm_encoded_ingredients(projected_encoded_ingredients)
           
           items_cpu=items.clone().cpu().long()
-          print(items_cpu.device())
+          print(items_cpu.device)
           encoded_items=self.hashed_recipes_ids_encoded_embeddings[items_cpu].to(self.device)
           print(encoded_ingredient_ids.device)
           encoded_items=self.dhe_fnn_items(encoded_items)
