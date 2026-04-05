@@ -24,6 +24,7 @@ class OptunaFunction():
                  loss_fn,
                  device,
                  tokenizer,
+                 hyperparemeters_ranges,
                  seed:int=42):
         
         self.seed=seed
@@ -44,6 +45,8 @@ class OptunaFunction():
         self.tokenizer=tokenizer
 
         self.device=device
+
+        self.hyperparemeters_ranges=hyperparemeters_ranges
     
     def objective(self,
                   trial):
@@ -53,13 +56,13 @@ class OptunaFunction():
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
         try:
-            batch_size = trial.suggest_categorical("batch_size",[32, 64])
-            dropout = trial.suggest_float("dropout",0.05,0.3,step=0.05)
-            projec_dropout= trial.suggest_float("projec_dropout",0.05,0.3,step=0.05)
-            lr=trial.suggest_float("lr",1e-4,1e-2,log=True)
-            weight_decay=trial.suggest_float("weight_decay",1e-5,1e-3,log=True)
-            warmup_prop=trial.suggest_float("warmup_prop",0.01,0.1,step=0.01)
-            mean_mode=trial.suggest_categorical("mean_mode",[True, False])
+            batch_size = trial.suggest_categorical("batch_size",self.hyperparemeters_ranges["batch_size"])
+            dropout = trial.suggest_float("dropout",self.hyperparemeters_ranges["dropout"]["low"],self.hyperparemeters_ranges["dropout"]["high"],step=self.hyperparemeters_ranges["dropout"]["step"])
+            projec_dropout= trial.suggest_float("projec_dropout",self.hyperparemeters_ranges["projec_dropout"]["low"],self.hyperparemeters_ranges["projec_dropout"]["high"],step=self.hyperparemeters_ranges["dropout"]["step"])
+            lr=trial.suggest_float("lr",self.hyperparemeters_ranges["lr"]["low"],self.hyperparemeters_ranges["lr"]["high"],log=self.hyperparemeters_ranges["lr"]["log"])
+            weight_decay=trial.suggest_float("weight_decay",self.hyperparemeters_ranges["weight_decay"]["low"],self.hyperparemeters_ranges["weight_decay"]["high"],log=self.hyperparemeters_ranges["weight_decay"]["log"])
+            warmup_prop=trial.suggest_float("warmup_prop",self.hyperparemeters_ranges["warmup_prop"]["low"],self.hyperparemeters_ranges["warmup_prop"]["high"],step=self.hyperparemeters_ranges["warmup_prop"]["step"])
+            mean_mode=trial.suggest_categorical("mean_mode",self.hyperparemeters_ranges["mean_mode"])
 
             train_dataset=CreationDataset(self.train_df,cls_embeddings=self.train_cls_embeddings,mean_embeddings=self.train_mean_embeddings)
             val_dataset=CreationDataset(self.val_df,cls_embeddings=self.val_cls_embeddings,mean_embeddings=self.val_mean_embeddings)
