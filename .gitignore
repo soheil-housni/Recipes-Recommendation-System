@@ -212,6 +212,9 @@ models/
 *.pt
 *.pth
 
+mlflow_runs/
+train_savings/
+
 # Ignore global
 *.pt
 *.pth
