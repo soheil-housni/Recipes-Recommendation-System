@@ -82,7 +82,7 @@ class OptunaFunction():
                 os.makedirs(f"./train_savings/{folder_name}")
             path=f"./train_savings/{folder_name}"
 
-            logger.info(f"Trial number {trial.number}: bs:{batch_size}d:{dropout}_pd:{projec_dropout}_lr:{lr}_wd:{weight_decay}_wp:{warmup_prop}".replace(".",","))
+            logger.info(f"Trial number {trial.number}: bs:{batch_size}_d:{dropout}_pd:{projec_dropout}_lr:{lr}_wd:{weight_decay}_wp:{warmup_prop}".replace(".",","))
             strict_best_total_loss=trainer.run_training(path=path,trial=trial)
             print("----------------------------------------------------------------------------------------------------")
             return strict_best_total_loss
