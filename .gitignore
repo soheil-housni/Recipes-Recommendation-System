@@ -219,3 +219,4 @@ train_savings/
 *.pt
 *.pth
 *.parquet
+*.db

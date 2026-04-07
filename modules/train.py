@@ -5,6 +5,7 @@ import numpy as np
 from loguru import logger
 import mlflow
 import optuna
+from .loss_function import ContrastiveMSELoss
 
 class Train():
     def __init__(self,
@@ -12,24 +13,25 @@ class Train():
                  val_dataloader,
                  model,
                  device,
-                 loss_fn,
+                 loss_alpha:float=0.5,
+                 loss_temperature:float=0.2,
                  warmup_prop:float=0.1,
                  lr:float=0.01,
                  weight_decay:float=5e-4,
                  n_epochs:int=10,
                  patience:int=2,
                  min_improvement=1e-4,
-                 mean:bool=False
                  ):
         
-        self.mean=mean
         self.train_dataloader=train_dataloader
         self.val_dataloader=val_dataloader
         self.model=model
         self.device=device
         self.lr=lr
         self.weight_decay=weight_decay
-        self.criterion=loss_fn
+        self.loss_alpha=loss_alpha
+        self.loss_temperature=loss_temperature
+        self.criterion=ContrastiveMSELoss(self.loss_alpha,self.loss_temperature)
         self.n_epochs=n_epochs
         self.patience=patience
         self.min_improvement=min_improvement
@@ -218,17 +220,29 @@ class Train():
         }
 
         torch.save(performances,f"{path}/epochs_performances.pt")
+        
+        hyperparameters_dict={
+            "lr":self.lr,
+            "weight_decay":self.weight_decay,
+            "dropout":self.model.dropout,
+            "projec_dropout":self.model.projec_dropout,
+            "warmup_prop":self.warmup_prop,
+            "mean_mode":self.model.mean_mode,
+            "batch_size":self.train_dataloader.batch_size,
+            "loss_alpha":self.loss_alpha,
+            "loss_temperature":self.loss_temperature
+            }
 
-        with mlflow.start_run(run_name=f"lr_{self.lr}_weight_decay_{self.weight_decay}_dropout_{self.model.dropout}"):
-            mlflow.log_params({
-                "lr":self.lr,
-                "weight_decay":self.weight_decay,
-                "dropout":self.model.dropout
-            })
+        with open(f"{path}/hp.txt", "w") as f:
+            for key, value in hyperparameters_dict.items():
+                f.write(f"{key}: {value}\n")
 
-            mlflow.log_metrics({"best_validation_loss":strict_best_total_loss,
-                                "best_contrastive_loss":best_contrastive_loss,
-                                "best_MSE_loss":best_mse_loss})
+        with mlflow.start_run(run_name=f"model_{trial.number}"):
+            mlflow.log_params(hyperparameters_dict)
+
+            mlflow.log_metrics({"best_validation-total_loss":strict_best_total_loss,
+                                "best_validation_contrastive_loss":best_contrastive_loss,
+                                "best_validation_MSE_loss":best_mse_loss})
 
             for epoch,(train_total_loss,train_contrastive_loss,train_mse_loss,val_total_loss,val_contrastive_loss,val_mse_loss) in enumerate(zip(train_epoch_total_losses,train_epoch_contrastive_losses,train_epoch_mse_losses,val_epoch_total_losses,val_epoch_contrastive_losses,val_epoch_mse_losses)):
                 mlflow.log_metrics({"epoch_train_total_loss":train_total_loss,
@@ -241,7 +255,8 @@ class Train():
             
             model_name=f"best_model_lr_{self.lr}_weight_decay_{self.weight_decay}_dropout_{self.model.dropout}"
             model_name=model_name.replace(".",",")
-            mlflow.set_tags({"lr": self.lr, "weight_decay": self.weight_decay, "dropout": self.model.dropout})
+            mlflow.set_tags(hyperparameters_dict)
+            
             mlflow.pytorch.log_model(best_model, model_name)
 
             return strict_best_total_loss

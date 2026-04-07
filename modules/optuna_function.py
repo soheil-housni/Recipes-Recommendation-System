@@ -9,6 +9,7 @@ from .control_seed import seed_worker
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 from .train import Train
+from .loss_function import ContrastiveMSELoss
 import os
 
 class OptunaFunction():
@@ -21,7 +22,8 @@ class OptunaFunction():
                  val_mean_embeddings,
                  hashed_ingredients_ids_encoded_embeddings,
                  hashed_recipes_ids_encoded_embeddings,
-                 loss_fn,
+                 loss_alpha,
+                 temperature,
                  device,
                  tokenizer,
                  hyperparemeters_ranges,
@@ -40,7 +42,8 @@ class OptunaFunction():
         self.hashed_ingredients_ids_encoded_embeddings=hashed_ingredients_ids_encoded_embeddings
         self.hashed_recipes_ids_encoded_embeddings=hashed_recipes_ids_encoded_embeddings
 
-        self.loss_fn=loss_fn
+        self.loss_alpha=loss_alpha
+        self.temperature=temperature
 
         self.tokenizer=tokenizer
 
@@ -67,7 +70,7 @@ class OptunaFunction():
             train_dataset=CreationDataset(self.train_df,cls_embeddings=self.train_cls_embeddings,mean_embeddings=self.train_mean_embeddings)
             val_dataset=CreationDataset(self.val_df,cls_embeddings=self.val_cls_embeddings,mean_embeddings=self.val_mean_embeddings)
             
-            model=RecommendationModel(hashed_ingredients_ids_encoded_embeddings=self.hashed_ingredients_ids_encoded_embeddings,hashed_recipes_ids_encoded_embeddings=self.hashed_recipes_ids_encoded_embeddings,device=self.device,dropout=dropout,projec_dropout=projec_dropout,mean=mean_mode)
+            model=RecommendationModel(hashed_ingredients_ids_encoded_embeddings=self.hashed_ingredients_ids_encoded_embeddings,hashed_recipes_ids_encoded_embeddings=self.hashed_recipes_ids_encoded_embeddings,device=self.device,dropout=dropout,projec_dropout=projec_dropout,mean_mode=mean_mode)
             generator=torch.Generator()
             generator.manual_seed(self.seed)
             collate_function_object=CollateFunction(tokenizer=self.tokenizer)
@@ -75,14 +78,15 @@ class OptunaFunction():
             train_dataloader=DataLoader(train_dataset,batch_size=batch_size,collate_fn=collate_fn,generator=generator,worker_init_fn=seed_worker,shuffle=True,drop_last=True)
             val_dataloader=DataLoader(val_dataset,batch_size=batch_size,collate_fn=collate_fn,generator=generator,worker_init_fn=seed_worker,shuffle=True,drop_last=True)
 
-            trainer=Train(train_dataloader=train_dataloader,val_dataloader=val_dataloader,model=model,device=self.device,loss_fn=self.loss_fn,warmup_prop=warmup_prop,lr=lr,weight_decay=weight_decay)
+            trainer=Train(train_dataloader=train_dataloader,val_dataloader=val_dataloader,model=model,device=self.device,loss_alpha=self.loss_alpha,loss_temperature=self.temperature,warmup_prop=warmup_prop,lr=lr,weight_decay=weight_decay)
 
-            folder_name=f"mean_mode_{mean_mode}_bs_{batch_size}_d_{dropout}_pd_{projec_dropout}_lr_{lr}_wd_{weight_decay}_wp_{warmup_prop}".replace(".",",")
+            folder_name=f"model_{trial.number}"
             if not os.path.exists(f"./train_savings/{folder_name}"):
                 os.makedirs(f"./train_savings/{folder_name}")
             path=f"./train_savings/{folder_name}"
 
-            logger.info(f"Trial number {trial.number}: bs:{batch_size}_d:{dropout}_pd:{projec_dropout}_lr:{lr}_wd:{weight_decay}_wp:{warmup_prop}".replace(".",","))
+            logger.info(f"Trial number {trial.number}: ")
+            logger.info(f"batch_size:{batch_size}_dropout:{dropout}_project_dropout:{projec_dropout}_lr:{lr}_weight_decay:{weight_decay}_warmup_prop:{warmup_prop}_mean_mode:{mean_mode}_loss_temp:{self.temperature}_loss_alpha:{self.loss_alpha}".replace(".",","))
             strict_best_total_loss=trainer.run_training(path=path,trial=trial)
             print("----------------------------------------------------------------------------------------------------")
             return strict_best_total_loss

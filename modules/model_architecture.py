@@ -15,11 +15,11 @@ class RecommendationModel(nn.Module):
                  distilbert_dmodel:int=768,
                  dropout:int=0.3,
                  projec_dropout:int=0.1,
-                 mean:bool=True
+                 mean_mode:bool=True
                  ):
         super().__init__()
 
-        self.mean=mean
+        self.mean_mode=mean_mode
 
         self.dropout=dropout
         self.projec_dropout=projec_dropout
@@ -184,21 +184,154 @@ class RecommendationModel(nn.Module):
 
     
     def forward(self,
-                technique_recipes,
-                calorie_level_scaled, #recipe
-                ingredient_ids_continuous,
-                techniques_users,
-                items,
+                technique_recipes, #recipes
+                calorie_level_scaled, #recipes
+                ingredient_ids_continuous, #recipes
+                techniques_users, #users
+                items, #users
                 n_items_scaled, #user
-                ratings_scaled,
+                ratings_scaled, #users
                 n_ratings_scaled, #user
-                minutes_scaled, #recipe
-                nutrition, #recipe
-                n_ingredients_scaled, #recipe
+                minutes_scaled, #recipes
+                nutrition, #recipes
+                n_ingredients_scaled, #recipes
                 #input_ids_full,
                 #attention_mask_full,
-                cls_embeddings=None,
-                mean_embeddings=None
+                cls_embeddings=None, #recipes
+                mean_embeddings=None, #recipes
+                ):
+          
+          user_embeddings=self.forward_users(items,
+                                             techniques_users,
+                                             n_items_scaled,
+                                             ratings_scaled,
+                                             n_ratings_scaled)
+          recipe_embeddings=self.forward_recipes(technique_recipes,
+                                                 calorie_level_scaled,
+                                                 ingredient_ids_continuous,
+                                                 minutes_scaled,
+                                                 nutrition,
+                                                 n_ingredients_scaled,
+                                                 cls_embeddings,
+                                                 mean_embeddings
+                                                 )
+          
+          cos_similarity=nn.functional.cosine_similarity(user_embeddings,recipe_embeddings,dim=1)
+
+          cos_similarity_scaled=(cos_similarity+1)/2
+
+          return {"user_embeddings":user_embeddings,
+                  "recipe_embeddings":recipe_embeddings,
+                  "cos_similarities":cos_similarity,
+                  "cos_similarities_scaled":cos_similarity_scaled}
+
+
+    def forward_users(self,
+                         items,
+                         techniques_users,
+                         n_items_scaled,
+                         ratings_scaled,
+                         n_ratings_scaled
+                         ):
+
+          encoded_items=self.hashed_recipes_ids_encoded_embeddings[items].to(self.device)
+          encoded_items=self.dhe_fnn_items(encoded_items)
+          encoded_items_history=self.weighted_mean_items(items,encoded_items,ratings_scaled)
+          projected_encoded_items=self.projection_items(encoded_items_history)
+          projected_encoded_items=nn.functional.dropout(projected_encoded_items,p=self.projec_dropout,training=self.training)
+          projected_encoded_items=self.norm_encoded_items(projected_encoded_items)
+
+          concat_add_features_users=torch.cat([n_items_scaled,n_ratings_scaled],dim=1)
+          concat_add_features_users=self.first_norm_add_features_users(concat_add_features_users)
+          concat_add_features_users=self.projection_add_features_users(concat_add_features_users)
+          concat_add_features_users=nn.functional.dropout(concat_add_features_users,p=self.projec_dropout,training=self.training)
+          concat_add_features_users=self.norm_add_features_users(concat_add_features_users)
+
+          techniques_users=self.first_norm_techniques_users(techniques_users)
+          techniques_users=self.projection_techniques_users(techniques_users)
+          techniques_users=nn.functional.dropout(techniques_users,p=self.projec_dropout,training=self.training)
+          techniques_users=self.norm_techniques_users(techniques_users)
+
+          user_embeddings=torch.cat([concat_add_features_users,techniques_users,projected_encoded_items],dim=1)
+
+          user_embeddings=self.user_fnn(user_embeddings)
+          user_embeddings=nn.functional.normalize(user_embeddings)
+
+          return user_embeddings
+    
+    def forward_recipes(self,
+                          technique_recipes,
+                          calorie_level_scaled,
+                          ingredient_ids_continuous,
+                          minutes_scaled,
+                          nutrition,
+                          n_ingredients_scaled,
+                          cls_embeddings=None,
+                          mean_embeddings=None):
+         
+          encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous].to(self.device)
+          encoded_ingredient_ids=self.dhe_fnn_ingredient(encoded_ingredient_ids)
+          encoded_ingredients_used=self.weighted_mean_ingredients(ingredient_ids_continuous,encoded_ingredient_ids)
+          projected_encoded_ingredients=self.projection_ingredient(encoded_ingredients_used)
+          projected_encoded_ingredients=nn.functional.dropout(projected_encoded_ingredients,p=self.projec_dropout,training=self.training)
+          projected_encoded_ingredients=self.norm_encoded_ingredients(projected_encoded_ingredients)
+
+          if self.mean_mode and mean_embeddings is not None:
+               pooled_full_text=mean_embeddings
+          elif not self.mean_mode and cls_embeddings is not None:
+               pooled_full_text=cls_embeddings
+          else:
+               raise ValueError("Need of the corresponding embedding for the pooling mode")
+               
+          projected_full_text=self.projection_full_text(pooled_full_text)
+          projected_full_text=nn.functional.dropout(projected_full_text,p=self.projec_dropout,training=self.training)
+          projected_full_text=self.norm_full_text(projected_full_text)
+
+          concat_add_features_recipes=torch.cat([minutes_scaled,n_ingredients_scaled,calorie_level_scaled],dim=1)
+          concat_add_features_recipes=self.first_norm_add_features_recipes(concat_add_features_recipes)
+          concat_add_features_recipes=self.projection_add_features_recipes(concat_add_features_recipes)
+          concat_add_features_recipes=nn.functional.dropout(concat_add_features_recipes,p=self.dropout,training=self.training)
+          concat_add_features_recipes=self.norm_add_features_recipes(concat_add_features_recipes)
+
+          nutrition=self.first_norm_nutrition(nutrition)
+          nutrition=self.projection_nutrition(nutrition)
+          nutrition=nn.functional.dropout(nutrition,p=self.projec_dropout,training=self.training)
+          nutrition=self.norm_nutrition(nutrition)
+
+          technique_recipes=self.first_norm_techniques_recipes(technique_recipes)
+          technique_recipes=self.projection_techniques_recipes(technique_recipes)
+          technique_recipes=nn.functional.dropout(technique_recipes,p=self.projec_dropout,training=self.training)
+          technique_recipes=self.norm_techniques_recipes(technique_recipes)
+
+          recipe_embeddings=torch.cat([concat_add_features_recipes,nutrition,technique_recipes,projected_full_text,projected_encoded_ingredients],dim=1)
+          recipe_embeddings=self.recipe_fnn(recipe_embeddings)
+          recipe_embeddings=nn.functional.normalize(recipe_embeddings)
+          return recipe_embeddings
+
+
+
+
+
+
+
+
+"""
+def forward(self,
+                technique_recipes, #recipes
+                calorie_level_scaled, #recipes
+                ingredient_ids_continuous, #recipes
+                techniques_users, #users
+                items, #users
+                n_items_scaled, #user
+                ratings_scaled, #users
+                n_ratings_scaled, #user
+                minutes_scaled, #recipes
+                nutrition, #recipes
+                n_ingredients_scaled, #recipes
+                #input_ids_full,
+                #attention_mask_full,
+                cls_embeddings=None, #recipes
+                mean_embeddings=None, #recipes
                 ):
           #ingredient_ids_continuous_cpu=ingredient_ids_continuous.clone().cpu().long()
           #encoded_ingredient_ids=self.hashed_ingredients_ids_encoded_embeddings[ingredient_ids_continuous_cpu].to(self.device)
@@ -220,7 +353,9 @@ class RecommendationModel(nn.Module):
           projected_encoded_items=self.norm_encoded_items(projected_encoded_items)
           
 
-          """
+"""
+     #real comments 
+"""
           steps_embeddings=self.distilbert_model(input_ids=input_ids_steps,attention_mask=attention_mask_steps).last_hidden_state
           descriptions_embeddings=self.distilbert_model(input_ids=input_ids_descriptions,attention_mask=attention_mask_descriptions).last_hidden_state
           tags_embeddings=self.distilbert_model(input_ids=input_ids_tags,attention_mask=attention_mask_tags).last_hidden_state
@@ -243,18 +378,18 @@ class RecommendationModel(nn.Module):
           projected_pooled_descriptions=self.projection_descriptions(pooled_descriptions)
           projected_pooled_descriptions=self.norm_descriptions(projected_pooled_descriptions)
 
-          """
-
-          """
+"""
+     #real comments
+"""
           full_text=self.distilbert_model(input_ids=input_ids_full,attention_mask=attention_mask_full).last_hidden_state
           pooled_full_text=full_text[:,0]
           projected_full_text=self.projection_full_text(pooled_full_text)
           projected_full_text=self.norm_full_text(projected_full_text)
-          """
-          
-          if self.mean and mean_embeddings is not None:
+"""
+"""   
+          if self.mean_mode and mean_embeddings is not None:
                pooled_full_text=mean_embeddings
-          elif not self.mean and cls_embeddings is not None:
+          elif not self.mean_mode and cls_embeddings is not None:
                pooled_full_text=cls_embeddings
           else:
                raise ValueError("Need of the corresponding embedding for the pooling mode")
@@ -307,12 +442,8 @@ class RecommendationModel(nn.Module):
                   "recipe_embeddings":recipe_embeddings,
                   "cos_similarities":cos_similarity,
                   "cos_similarities_scaled":cos_similarity_scaled}
-
-
-
-
-
-
+     
+"""
 
 
 
