@@ -178,7 +178,7 @@ class Train():
 
             
             logger.info(f"Epoch {epoch} : train total loss = {train_total_loss}")
-            logger.info(f"Epoch {epoch} : train contrative loss = {train_contrastive_loss}")
+            logger.info(f"Epoch {epoch} : train contrastive loss = {train_contrastive_loss}")
             logger.info(f"Epoch {epoch} : train MSE loss = {train_mse_loss}")
 
             logger.info(f"Epoch {epoch} : validation total loss = {val_total_loss}")
@@ -240,7 +240,7 @@ class Train():
         with mlflow.start_run(run_name=f"model_{trial.number}"):
             mlflow.log_params(hyperparameters_dict)
 
-            mlflow.log_metrics({"best_validation-total_loss":strict_best_total_loss,
+            mlflow.log_metrics({"best_validation_total_loss":strict_best_total_loss,
                                 "best_validation_contrastive_loss":best_contrastive_loss,
                                 "best_validation_MSE_loss":best_mse_loss})
 

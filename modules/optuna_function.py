@@ -86,7 +86,7 @@ class OptunaFunction():
             path=f"./train_savings/{folder_name}"
 
             logger.info(f"Trial number {trial.number}: ")
-            logger.info(f"batch_size:{batch_size}_dropout:{dropout}_project_dropout:{projec_dropout}_lr:{lr}_weight_decay:{weight_decay}_warmup_prop:{warmup_prop}_mean_mode:{mean_mode}_loss_temp:{self.temperature}_loss_alpha:{self.loss_alpha}".replace(".",","))
+            logger.info(f"batch_size:{batch_size}_dropout:{dropout}_projec_dropout:{projec_dropout}_lr:{lr}_weight_decay:{weight_decay}_warmup_prop:{warmup_prop}_mean_mode:{mean_mode}_loss_temp:{self.temperature}_loss_alpha:{self.loss_alpha}".replace(".",","))
             strict_best_total_loss=trainer.run_training(path=path,trial=trial)
             print("----------------------------------------------------------------------------------------------------")
             return strict_best_total_loss
