@@ -1,22 +1,15 @@
 import pandas as pd
 import numpy as np
 import ast
-from sklearn.preprocessing import StandardScaler
 
 
 
-class DataFramePreprocessing:
+class BeforeSplitPreprocessing:
 
     def __init__(self,full_df,max_len_ingredients,max_len_items):
         self.full_df_processed=full_df.copy()
-
-
         self.max_len_ingredients=max_len_ingredients
         self.max_len_items=max_len_items
-
-        self.agg_user_ratings=self.full_df_processed.groupby("user_id")["rating"].agg(["count",lambda x: x.mode().iloc[0]]).rename(columns={'<lambda_0>':"mode"})
-        self.agg_recipe_ratings=self.full_df_processed.groupby("recipe_id")["rating"].agg(["count",lambda x: x.mode().iloc[0]]).rename(columns={'<lambda_0>':"mode"})
-        self.mode_rating=self.full_df_processed["rating"].mode().iloc[0]
 
 
     def preprocessing(self):
@@ -37,20 +30,15 @@ class DataFramePreprocessing:
         self.full_df_processed["items"]=self.full_df_processed["items"].apply(lambda x : x if isinstance(x,list) else [0]*self.max_len_items)
         self.full_df_processed["n_items"]=self.full_df_processed["n_items"].fillna(0)
         self.full_df_processed["name"]=self.full_df_processed["name"].fillna("no name")
-        self.full_df_processed["minutes"]=self.full_df_processed["minutes"].fillna(self.full_df_processed["minutes"].mode().iloc[0])
         self.full_df_processed["tags"]=self.full_df_processed["tags"].fillna("no tags")
         self.full_df_processed["nutrition"]=self.full_df_processed["nutrition"].apply(lambda x : x if isinstance(x,list) else [0]*n_nutrition)
         self.full_df_processed["i"]=self.full_df_processed["i"]+1
-
-        self.full_df_processed["n_ratings"]=self.full_df_processed["n_ratings"].fillna(self.full_df_processed["user_id"].map(self.agg_user_ratings["count"])).fillna(0)
 
         mask_missing_n_steps=self.full_df_processed["n_steps"].isna()
         self.full_df_processed.loc[mask_missing_n_steps,"n_steps"]=self.full_df_processed.loc[mask_missing_n_steps,"steps"].str.count(r"\[SEP\]").fillna(0)
 
         mask_missing_n_ingredients=self.full_df_processed["n_ingredients"].isna()
         self.full_df_processed.loc[mask_missing_n_ingredients,"n_ingredients"]=self.full_df_processed.loc[mask_missing_n_ingredients,"ingredient_ids"].apply(lambda x: len(x) if isinstance(x,list) else 0)
-
-        self.full_df_processed["rating"]=self.full_df_processed["rating"].fillna(self.full_df_processed["user_id"].map(self.agg_user_ratings["mode"])).fillna(self.full_df_processed["recipe_id"].map(self.agg_recipe_ratings["mode"])).fillna(self.full_df_processed["rating"].mode().iloc[0])
 
         mask_missing_n_items=self.full_df_processed["n_items"].isna()
         self.full_df_processed.loc[mask_missing_n_items,"n_items"]=self.full_df_processed.loc[mask_missing_n_items,"items"].apply(lambda x : len(x) if isinstance(x,list) else 0)

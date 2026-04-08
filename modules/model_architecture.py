@@ -10,8 +10,8 @@ class RecommendationModel(nn.Module):
                  hashed_recipes_ids_encoded_embeddings,
                  device,
                  #distilbert_model,
-                 ingredient_id_emb_dim:int=1024,
-                 recipe_id_emb_dim:int=1024,
+                 ingredient_id_emb_dim:int=512,
+                 recipe_id_emb_dim:int=512,
                  distilbert_dmodel:int=768,
                  dropout:int=0.3,
                  projec_dropout:int=0.1,
@@ -45,8 +45,8 @@ class RecommendationModel(nn.Module):
             nn.Linear(self.ingredient_id_emb_dim//2,self.ingredient_id_emb_dim)
         )
 
-        self.projection_ingredient=nn.Linear(self.ingredient_id_emb_dim,self.ingredient_id_emb_dim//4)
-        self.norm_encoded_ingredients=nn.LayerNorm(self.ingredient_id_emb_dim//4)
+        self.projection_ingredient=nn.Linear(self.ingredient_id_emb_dim,self.ingredient_id_emb_dim//2)
+        self.norm_encoded_ingredients=nn.LayerNorm(self.ingredient_id_emb_dim//2)
 
         self.dhe_fnn_items=nn.Sequential(
             nn.Linear(self.recipe_id_emb_dim,self.recipe_id_emb_dim//2),
@@ -55,8 +55,8 @@ class RecommendationModel(nn.Module):
             nn.Linear(self.recipe_id_emb_dim//2,self.recipe_id_emb_dim)
         )
 
-        self.projection_items=nn.Linear(self.recipe_id_emb_dim,self.recipe_id_emb_dim//4)
-        self.norm_encoded_items=nn.LayerNorm(self.recipe_id_emb_dim//4)
+        self.projection_items=nn.Linear(self.recipe_id_emb_dim,self.recipe_id_emb_dim//2)
+        self.norm_encoded_items=nn.LayerNorm(self.recipe_id_emb_dim//2)
 
         """
 
@@ -98,8 +98,8 @@ class RecommendationModel(nn.Module):
         self.projection_techniques_recipes=nn.Linear(58,58)
         self.norm_techniques_recipes=nn.LayerNorm(58)
 
-        self.enter_dim_recipes=(3*4)+(7*2)+(58)+(self.distilbert_dmodel//2)+(recipe_id_emb_dim//4)
-        self.enter_dim_users=(2*4)+58+(1024//4)
+        self.enter_dim_recipes=(3*4)+(7*2)+(58)+(self.distilbert_dmodel//2)+(ingredient_id_emb_dim//2)
+        self.enter_dim_users=(2*4)+58+(recipe_id_emb_dim//2)
 
         self.user_fnn=nn.Sequential(
              nn.LayerNorm(self.enter_dim_users),

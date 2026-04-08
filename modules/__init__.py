@@ -1,4 +1,5 @@
-from .preprocessing import DataFramePreprocessing
+from .preprocessing_before_split import BeforeSplitPreprocessing
+from .preprocessing_after_split import AfterSplitPreprocessing
 from .creation_dataset import CreationDataset,BERTCreationDataset
 from .dataloader_collate_function import CollateFunction,BertCollateFunction
 from .model_architecture import RecommendationModel
