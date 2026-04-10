@@ -253,8 +253,7 @@ class Train():
                                     "epoch_validation_mse_loss":val_mse_loss,
                                     },step=epoch)
             
-            model_name=f"best_model_lr_{self.lr}_weight_decay_{self.weight_decay}_dropout_{self.model.dropout}"
-            model_name=model_name.replace(".",",")
+            model_name=f"model_{trial.number}"
             mlflow.set_tags(hyperparameters_dict)
             
             mlflow.pytorch.log_model(best_model, model_name)
