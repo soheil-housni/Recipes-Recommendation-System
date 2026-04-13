@@ -12,3 +12,5 @@ from .loss_function import ContrastiveMSELoss
 from .bert_embeddings import BERTEmbeddingsExtractor
 from .optuna_function import OptunaFunction
 from .load_parquet_file import load
+from .test import Test
+from .recipes_embeddings import RecipesEmbeddingsExtractor
