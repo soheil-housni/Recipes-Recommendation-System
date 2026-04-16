@@ -1,11 +1,11 @@
-from .preprocessing_before_split import BeforeSplitPreprocessing
-from .preprocessing_after_split import AfterSplitPreprocessing
+from .preprocessing_before_split import BeforeSplitPreprocessingRecipesFeatures,BeforeSplitPreprocessingUsersFeatures
+from .preprocessing_after_split import AfterSplitPreprocessingRecipesFeatures,AfterSplitPreprocessingUsersFeatures
 from .creation_dataset import CreationDataset,BERTCreationDataset
-from .dataloader_collate_function import CollateFunction,BertCollateFunction
+from .dataloader_collate_function import CollateFunction,BertCollateFunction, CollateFunctionInferenceRecipes,CollateFunctionInferenceUsers
 from .model_architecture import RecommendationModel
 from .control_seed import set_seed,seed_worker
 from .hashed_encoded_tables import EncodedHashedEmbeddings
-from .scale import Scaler
+from .scale import Scaler, ScalerInferenceUsers, ScalerInferenceRecipes
 from .split import split_df
 from .train import Train
 from .loss_function import ContrastiveMSELoss
@@ -14,3 +14,5 @@ from .optuna_function import OptunaFunction
 from .load_parquet_file import load
 from .test import Test
 from .recipes_embeddings import RecipesEmbeddingsExtractor
+from .inference_recipes_recommender import RecipesRecommender
+from .recipes_set import creation_recipes_set
