@@ -83,7 +83,7 @@ class RecommendationModel(nn.Module):
         self.projection_techniques_recipes=nn.Linear(58,58)
         self.norm_techniques_recipes=nn.LayerNorm(58)
 
-        self.enter_dim_recipes=(3*4)+(7*2)+(58)+(self.distilbert_dmodel//2)+(ingredient_id_emb_dim//2)
+        self.enter_dim_recipes=(4*4)+(7*2)+(58)+(self.distilbert_dmodel//2)+(ingredient_id_emb_dim//2)
         self.enter_dim_users=(2*4)+58+(recipe_id_emb_dim//2)
 
         self.user_fnn=nn.Sequential(
