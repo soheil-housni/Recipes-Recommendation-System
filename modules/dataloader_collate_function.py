@@ -64,7 +64,7 @@ class CollateFunctionInferenceRecipes():
                     batch):
         recipe_id=[b["recipe_id"] for b in batch]
         i=[b["i"] for b in batch]
-        technique_recipes=[torch.tensor(b["techniques_recipes"]) for b in batch]
+        techniques_recipes=[torch.tensor(b["techniques_recipes"]) for b in batch]
         calorie_level_scaled=[b["calorie_level_scaled"] for b in batch]
         ingredient_ids=[torch.tensor(b["ingredient_ids"]) for b in batch]
         ingredient_ids_continuous=[torch.tensor(b["ingredient_ids_continuous"]) for b in batch]
@@ -77,7 +77,7 @@ class CollateFunctionInferenceRecipes():
         inputs={
             "recipe_id": torch.tensor(recipe_id, dtype=torch.long).view(-1,1),
             "i": torch.tensor(i, dtype=torch.long).view(-1,1),
-            "technique_recipes": torch.stack(technique_recipes).float(),
+            "techniques_recipes": torch.stack(techniques_recipes).float(),
             "calorie_level_scaled": torch.tensor(calorie_level_scaled, dtype=torch.float32).view(-1,1),
             "ingredient_ids": torch.stack(ingredient_ids).float(),
             "minutes_scaled": torch.tensor(minutes_scaled, dtype=torch.float32).view(-1,1),
@@ -99,7 +99,7 @@ class CollateFunctionInferenceUsers():
         techniques_users=[torch.tensor(b["techniques_users"]) for b in batch]
         items=[torch.tensor(b["items"]) for b in batch]
         n_items_scaled=[b["n_items_scaled"] for b in batch]
-        ratings_scaled=[torch.tensor(b["ratings"]) for b in batch]
+        ratings_scaled=[torch.tensor(b["ratings_sclaed"]) for b in batch]
         n_ratings_scaled=[b["n_ratings_scaled"] for b in batch]
         inputs={
             "user_id": torch.tensor(user_id,dtype=torch.long).view(-1,1),

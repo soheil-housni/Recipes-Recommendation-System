@@ -25,7 +25,6 @@ class OptunaFunction():
                  loss_alpha,
                  temperature,
                  device,
-                 tokenizer,
                  hyperparemeters_ranges,
                  seed:int=42):
         
@@ -44,8 +43,6 @@ class OptunaFunction():
 
         self.loss_alpha=loss_alpha
         self.temperature=temperature
-
-        self.tokenizer=tokenizer
 
         self.device=device
 
@@ -73,7 +70,7 @@ class OptunaFunction():
             model=RecommendationModel(hashed_ingredients_ids_encoded_embeddings=self.hashed_ingredients_ids_encoded_embeddings,hashed_recipes_ids_encoded_embeddings=self.hashed_recipes_ids_encoded_embeddings,device=self.device,dropout=dropout,projec_dropout=projec_dropout,mean_mode=mean_mode)
             generator=torch.Generator()
             generator.manual_seed(self.seed)
-            collate_function_object=CollateFunction(tokenizer=self.tokenizer)
+            collate_function_object=CollateFunction()
             collate_fn=collate_function_object.collate_fn
             train_dataloader=DataLoader(train_dataset,batch_size=batch_size,collate_fn=collate_fn,generator=generator,worker_init_fn=seed_worker,shuffle=True,drop_last=True)
             val_dataloader=DataLoader(val_dataset,batch_size=batch_size,collate_fn=collate_fn,generator=generator,worker_init_fn=seed_worker,shuffle=True,drop_last=True)

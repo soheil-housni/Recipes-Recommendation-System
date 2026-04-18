@@ -58,27 +58,12 @@ class RecommendationModel(nn.Module):
         self.projection_items=nn.Linear(self.recipe_id_emb_dim,self.recipe_id_emb_dim//2)
         self.norm_encoded_items=nn.LayerNorm(self.recipe_id_emb_dim//2)
 
-        """
-
-        self.projection_names=nn.Linear(self.distilbert_dmodel,self.distilbert_dmodel//4)
-        self.norm_names=nn.LayerNorm(self.distilbert_dmodel//4)
-
-        self.projection_steps=nn.Linear(self.distilbert_dmodel,self.distilbert_dmodel//4)
-        self.norm_steps=nn.LayerNorm(self.distilbert_dmodel//4)
-
-        self.projection_tags=nn.Linear(self.distilbert_dmodel,self.distilbert_dmodel//4)
-        self.norm_tags=nn.LayerNorm(self.distilbert_dmodel//4)
-
-        self.projection_descriptions=nn.Linear(self.distilbert_dmodel,self.distilbert_dmodel//4)
-        self.norm_descriptions=nn.LayerNorm(self.distilbert_dmodel//4)
-
-        """
         self.projection_full_text=nn.Linear(self.distilbert_dmodel,self.distilbert_dmodel//2)
         self.norm_full_text=nn.LayerNorm(self.distilbert_dmodel//2)
 
-        self.first_norm_add_features_recipes=nn.LayerNorm(3)
-        self.projection_add_features_recipes=nn.Linear(3,3*4)
-        self.norm_add_features_recipes=nn.LayerNorm(3*4)
+        self.first_norm_add_features_recipes=nn.LayerNorm(4)
+        self.projection_add_features_recipes=nn.Linear(4,4*4)
+        self.norm_add_features_recipes=nn.LayerNorm(4*4)
 
 
         self.first_norm_add_features_users=nn.LayerNorm(2)
@@ -121,28 +106,6 @@ class RecommendationModel(nn.Module):
              nn.LayerNorm(256)
         )
 
-    """
-    def weighted_mean(self,raw_ids,hashed_encoded_ids):
-         mask=(raw_ids!=0).float()
-         mask=mask.unsqueeze(dim=1)
-         final_encoded=torch.matmul(mask,hashed_encoded_ids)
-         final_encoded=final_encoded.squeeze(dim=1)
-         mask_sum=mask.sum(dim=2).unsqueeze(dim=1)
-         mask_sum=mask_sum.masked_fill((mask_sum==0),1.0)
-         final_encoded=final_encoded/mask_sum
-         return final_encoded
-    """
-    """
-    def weighted_mean_ingredients(self,raw_ids,hashed_encoded_ids):
-         mask=(raw_ids!=0).float()
-         mask=mask.unsqueeze(dim=1)
-         final_encoded=torch.matmul(mask,hashed_encoded_ids)
-         final_encoded=final_encoded.squeeze(dim=1)
-         mask_sum=mask.sum(dim=2)
-         mask_sum=mask_sum.masked_fill((mask_sum==0),1.0)
-         final_encoded=final_encoded/mask_sum
-         return final_encoded
-     """
     def weighted_mean_ingredients(self,raw_ids,hashed_encoded_ids):
          mask = (raw_ids != 0).float()
          mask_sum = mask.sum(dim=1, keepdim=True).clamp(min=1.0)
@@ -150,23 +113,7 @@ class RecommendationModel(nn.Module):
          final_encoded = masked_embeddings.sum(dim=1) / mask_sum
          return final_encoded
     
-    """
-    def weighted_mean_items(self,raw_ids,hashed_encoded_ids,ratings_scaled):
-         mask=(raw_ids!=0).float()
-         ratings_scaled=ratings_scaled.float()
-         mean_ratings_scaled=ratings_scaled*mask
-         mean_ratings_scaled=mean_ratings_scaled.sum(dim=1).unsqueeze(1)
-         mask_sum=mask.sum(dim=1).unsqueeze(1)
-         mask_sum=mask_sum.masked_fill((mask_sum==0),1.0)
-         mean_ratings_scaled=mean_ratings_scaled/mask_sum
-
-         weights=ratings_scaled-mean_ratings_scaled
-         weights=weights*mask
-         weights=weights.unsqueeze(dim=1).float()
-         final_encoded=torch.matmul(weights,hashed_encoded_ids).squeeze(1)
-         final_encoded=final_encoded/mask_sum
-         return final_encoded
-     """
+   
     def weighted_mean_items(self,raw_ids,hashed_encoded_ids,ratings_scaled):
          mask=(raw_ids!=0).float()
          mask_sum=mask.sum(dim=1,keepdim=True).clamp(min=1.0)
@@ -197,6 +144,7 @@ class RecommendationModel(nn.Module):
                 n_ingredients_scaled, #recipes
                 #input_ids_full,
                 #attention_mask_full,
+                n_steps_scaled,
                 cls_embeddings=None, #recipes
                 mean_embeddings=None, #recipes
                 ):
@@ -212,6 +160,7 @@ class RecommendationModel(nn.Module):
                                                  minutes_scaled,
                                                  nutrition,
                                                  n_ingredients_scaled,
+                                                 n_steps_scaled,
                                                  cls_embeddings,
                                                  mean_embeddings
                                                  )
@@ -266,6 +215,7 @@ class RecommendationModel(nn.Module):
                           minutes_scaled,
                           nutrition,
                           n_ingredients_scaled,
+                          n_steps_scaled,
                           cls_embeddings=None,
                           mean_embeddings=None):
          
@@ -287,7 +237,7 @@ class RecommendationModel(nn.Module):
           projected_full_text=nn.functional.dropout(projected_full_text,p=self.projec_dropout,training=self.training)
           projected_full_text=self.norm_full_text(projected_full_text)
 
-          concat_add_features_recipes=torch.cat([minutes_scaled,n_ingredients_scaled,calorie_level_scaled],dim=1)
+          concat_add_features_recipes=torch.cat([minutes_scaled,n_ingredients_scaled,n_steps_scaled,calorie_level_scaled],dim=1)
           concat_add_features_recipes=self.first_norm_add_features_recipes(concat_add_features_recipes)
           concat_add_features_recipes=self.projection_add_features_recipes(concat_add_features_recipes)
           concat_add_features_recipes=nn.functional.dropout(concat_add_features_recipes,p=self.dropout,training=self.training)
