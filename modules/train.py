@@ -112,10 +112,9 @@ class Train():
                                    minutes_scaled=batch["minutes_scaled"],
                                    nutrition=batch["nutrition"],
                                    n_ingredients_scaled=batch["n_ingredients_scaled"],
+                                   n_steps_scaled=batch["n_steps_scaled"],
                                    cls_embeddings=batch["cls_embeddings"],
                                    mean_embeddings=batch["mean_embeddings"]
-                                   #input_ids_full=batch["input_ids_full"],
-                                   #attention_mask_full=batch["attention_mask_full"]
                                    )
                 
                 self.optimizer.zero_grad()
@@ -146,10 +145,9 @@ class Train():
                                    minutes_scaled=batch["minutes_scaled"],
                                    nutrition=batch["nutrition"],
                                    n_ingredients_scaled=batch["n_ingredients_scaled"],
+                                   n_steps_scaled=batch["n_steps_scaled"],
                                    cls_embeddings=batch["cls_embeddings"],
                                    mean_embeddings=batch["mean_embeddings"]
-                                   #input_ids_full=batch["input_ids_full"],
-                                   #attention_mask_full=batch["attention_mask_full"]
                                    )
                     loss=self.criterion(
                     outputs=outputs,
