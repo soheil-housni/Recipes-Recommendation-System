@@ -24,6 +24,7 @@ class RecipesEmbeddingsExtractor():
                                                               minutes_scaled=batch["minutes_scaled"],
                                                               nutrition=batch["nutrition"],
                                                               n_ingredients_scaled=batch["n_ingredients_scaled"],
+                                                              n_steps_scaled=batch["n_steps_scaled"],
                                                               cls_embeddings=batch["cls_embeddings"],
                                                               mean_embeddings=batch["mean_embeddings"])
                 all_recipes_embeddings.append(recipes_embeddings)

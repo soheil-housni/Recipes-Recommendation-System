@@ -79,7 +79,7 @@ class CollateFunctionInferenceRecipes():
         inputs={
             "recipe_id": torch.tensor(recipe_id, dtype=torch.long).view(-1,1),
             "i": torch.tensor(i, dtype=torch.long).view(-1,1),
-            "techniques_recipes": torch.stack(techniques_recipes).float(),
+            "technique_recipes": torch.stack(techniques_recipes).float(),
             "calorie_level_scaled": torch.tensor(calorie_level_scaled, dtype=torch.float32).view(-1,1),
             "ingredient_ids": torch.stack(ingredient_ids).float(),
             "minutes_scaled": torch.tensor(minutes_scaled, dtype=torch.float32).view(-1,1),
