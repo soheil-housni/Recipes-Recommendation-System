@@ -17,9 +17,12 @@ class BERTEmbeddingsExtractor():
             for batch in dataloader:
                 for key in list(batch.keys()):
                     batch[key]=batch[key].to(self.device)
-                output=self.bert_model(input_ids=batch["input_ids"],attention_mask=batch["attention_mask"]).last_hidden_state
+                attention_mask=batch["attention_mask"]
+                output=self.bert_model(input_ids=batch["input_ids"],attention_mask=attention_mask).last_hidden_state
                 cls_embeddings=output[:,0]
-                mean_embeddings=output.mean(dim=1)
+                attention_mask=attention_mask.unsqueeze(-1).float()
+                mask_sum=attention_mask.sum(dim=1,keepdim=True).clamp(1.0)
+                mean_embeddings=((output*attention_mask).sum(dim=1))/mask_sum
                 all_cls_embeddings.append(cls_embeddings)
                 all_mean_embeddings.append(mean_embeddings)
         

@@ -16,3 +16,4 @@ from .test import Test
 from .recipes_embeddings import RecipesEmbeddingsExtractor
 from .inference_recipes_recommender import RecipesRecommender
 from .recipes_set import creation_recipes_set
+from .inference_preprocessing import InferencePreprocessingUsers

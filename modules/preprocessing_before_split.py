@@ -26,7 +26,7 @@ class BeforeSplitPreprocessingRecipesFeatures:
         self.full_df_processed["techniques_recipes"]=self.full_df_processed["techniques_recipes"].apply(lambda x : x if isinstance(x,list) else [0]*n_techniques_recipes)
         self.full_df_processed["name"]=self.full_df_processed["name"].fillna("no name")
         self.full_df_processed["tags"]=self.full_df_processed["tags"].fillna("no tags")
-        self.full_df_processed["nutrition"]=self.full_df_processed["nutrition"].apply(lambda x : x if isinstance(x,list) else [0]*n_nutrition)
+        self.full_df_processed["nutrition"]=self.full_df_processed["nutrition"].apply(lambda x : x if isinstance(x,list) else [0.0]*n_nutrition)
         self.full_df_processed["ingredient_ids"]=self.full_df_processed["ingredient_ids"].apply(lambda x : x if isinstance(x,list) else [0]*self.max_len_ingredients)
         self.full_df_processed["i"]=self.full_df_processed["i"].fillna(0)
         mask_missing_n_steps=self.full_df_processed["n_steps"].isna()

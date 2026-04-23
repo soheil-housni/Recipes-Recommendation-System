@@ -1,5 +1,6 @@
 import ast
 import numpy as np
+import torch
 
 
 class InferencePreprocessingRecipes():
@@ -7,7 +8,7 @@ class InferencePreprocessingRecipes():
                  train_df,
                  scaler_recipes,
                  max_len_ingredients,
-                 ingredient_continuous_ids,
+                 ingredient_continuous_ids_serie,
                  recipe_continuous_ids,
                  n_nutrition,
                  n_techniques_recipes,
@@ -19,8 +20,8 @@ class InferencePreprocessingRecipes():
         self.scaler_recipes=scaler_recipes
         self.max_len_ingredients=max_len_ingredients
         self.train_df=train_df.copy()
-        self.ingredient_continuous_ids=ingredient_continuous_ids
-        self.recipe_continuous_ids=recipe_continuous_ids
+        self.ingredient_continuous_ids_serie=ingredient_continuous_ids_serie
+        self.recipe_continuous_ids_serie=recipe_continuous_ids
         self.n_nutrition=n_nutrition
         self.n_techniques_recipes=n_techniques_recipes
         self.bert_model=bert_model
@@ -43,25 +44,57 @@ class InferencePreprocessingRecipes():
                       steps=None, 
                       techniques_recipes=None):
         
-        recipe_id,i,name,description,tags,calorie_level,\
-        n_ingredients,ingredient_ids,nutrition,n_steps,\
-        steps,techniques_recipes,ingredient_ids_continuous,full_text=self.before_split_processing(recipe_id,i,name,description,tags,calorie_level,n_ingredients,ingredient_ids,nutrition,n_steps,steps,techniques_recipes)
+        recipe_id,i,name,description,tags,n_ingredients,ingredient_ids,\
+        nutrition,n_steps,steps,techniques_recipes,ingredient_ids_continuous,full_text\
+        =self.before_split_processing(recipe_id=recipe_id,
+                                      i=i,
+                                      name=name,
+                                      description=description,
+                                      tags=tags,
+                                      n_ingredients=n_ingredients,
+                                      ingredient_ids=ingredient_ids,
+                                      nutrition=nutrition,
+                                      n_steps=n_steps,
+                                      steps=steps,
+                                      techniques_recipes=techniques_recipes
+                                      )        
 
-        minutes=self.after_split_processing(minutes)
+        calorie_level,minutes=self.after_split_preprocessing(calorie_level=calorie_level,minutes=minutes)
 
-        calorie_level_scaled,minutes_scaled,n_steps_scaled,n_ingredients_scaled=self.scale(calorie_level,minutes,n_steps,n_ingredients)
+        calorie_level_scaled,minutes_scaled,n_steps_scaled,n_ingredients_scaled=self.scale(calorie_level=calorie_level,
+                                                                                           minutes=minutes,
+                                                                                           n_steps=n_steps,
+                                                                                           n_ingredients=n_ingredients)
 
         cls_embedding,mean_embedding=self.bert_embeddings(full_text)
 
-        return recipe_id,i,techniques_recipes,calorie_level_scaled,minutes_scaled,nutrition,n_ingredients_scaled,ingredient_ids_continuous,n_steps_scaled,cls_embedding,mean_embedding
+        techniques_recipes=torch.tensor(techniques_recipes).reshape(1,-1)
+        calorie_level_scaled=torch.tensor([calorie_level_scaled]).reshape(1,-1)
+        ingredient_ids_continuous=torch.tensor(ingredient_ids_continuous).reshape(1,-1)
+        minutes_scaled=torch.tensor([minutes_scaled]).reshape(1,-1)
+        nutrition=torch.tensor(nutrition).reshape(1,-1)
+        n_ingredients_scaled=torch.tensor([n_ingredients_scaled]).reshape(1,-1)
+        n_steps_scaled=torch.tensor([n_steps_scaled]).reshape(1,-1)
+
+        cls_embedding=cls_embedding.reshape(1,-1)
+        mean_embedding=mean_embedding.reshape(1,-1)
+
+
+        return techniques_recipes,calorie_level_scaled,ingredient_ids_continuous,minutes_scaled,nutrition,n_ingredients_scaled,n_steps_scaled,cls_embedding,mean_embedding
     
-    def bert_embeddings(self,full_text):
-        tokenized_full_text=self.tokenizer(full_text,return_tensors="pt",max_length=512,truncation=True,padding="max_length")
-        for key in tokenized_full_text:
-            tokenized_full_text[key]=tokenized_full_text[key].to(self.device)
-        output=self.bert_model(input_ids=tokenized_full_text["input_ids"],attention_mask=tokenized_full_text["attention_mask"]).last_hidden_state
-        cls_embedding=output[:,0]
-        mean_embedding=output.mean(dim=1)
+    def bert_embeddings(self,
+                        full_text):
+        with torch.inference_mode:
+            self.bert_model.eval()
+            tokenized_full_text=self.tokenizer(full_text,return_tensors="pt",max_length=512,truncation=True,padding="max_length")
+            for key in tokenized_full_text:
+                tokenized_full_text[key]=tokenized_full_text[key].to(self.device)
+            attention_mask=tokenized_full_text["attention_mask"]
+            output=self.bert_model(input_ids=tokenized_full_text["input_ids"],attention_mask=attention_mask).last_hidden_state
+            cls_embedding=output[:,0]
+            attention_mask=attention_mask.unsqueeze(-1).float()
+            mask_sum=attention_mask.sum(dim=1).clamp(1.0).item()
+            mean_embedding=(output*attention_mask).sum(dim=1)/mask_sum
         return cls_embedding,mean_embedding
 
 
@@ -71,42 +104,68 @@ class InferencePreprocessingRecipes():
               n_steps,
               n_ingredients):
         
-        X=np.array([calorie_level,minutes,n_steps,n_ingredients],dtype=np.float32)
+        X=np.array([calorie_level,minutes,n_steps,n_ingredients],dtype=np.float32).reshape(1,-1)
         X_scaled=self.scaler_recipes.transform(X)
-        return X_scaled[0],X_scaled[1],X_scaled[2],X_scaled[3]
+        calorie_level_scaled=X_scaled[0,0]
+        minutes_scaled=X_scaled[0,1]
+        n_steps_scaled=X_scaled[0,2]
+        n_ingredients_scaled=X_scaled[0,3]
+        return calorie_level_scaled,minutes_scaled,n_steps_scaled,n_ingredients_scaled
 
 
 
-    def after_split_processing(self,minutes):
+    def after_split_preprocessing(self,
+                                  calorie_level=None,
+                                  minutes=None):
+        
+        if calorie_level is not None:
+            calorie_level=int(calorie_level)
+        else:
+            if self.train_df["calorie_level"].mode().iloc[0] is not None:
+                calorie_level=self.train_df["calorie_level"].mode().iloc[0]
+            else:
+                calorie_level=0
+
         if minutes is not None:
             minutes=int(minutes)
         else :
-            minutes=self.train_df["minutes"].mode().iloc[0]
-        return minutes
+            if self.train_df["minutes"].mode().iloc[0] is not None:
+                minutes=self.train_df["minutes"].mode().iloc[0]
+            else:
+                minutes=0
+        
+        
+        return calorie_level,minutes
 
-    def before_split_processing(self,
+    def before_split_processing(
+                    self,
                     recipe_id=None,
                     i=None,
                     name=None,
                     description=None,
                     tags=None,
-                    calorie_level=None,
                     n_ingredients=None,
                     ingredient_ids=None,
                     nutrition=None,
                     n_steps=None,
                     steps=None, 
-                    techniques_recipes=None):
+                    techniques_recipes=None
+                    ):
         
         if recipe_id is not None and i is None:
-            if recipe_id in self.recipe_continuous_ids.index:
-                i=int(self.recipe_continuous_ids.loc[recipe_id])
+            if recipe_id in self.recipe_continuous_ids_serie.index:
+                i=int(self.recipe_continuous_ids_serie.loc[recipe_id])
             else:
-                i=178267
+                i=178266
         elif recipe_id is None and i is None:
             i=0
         else:
             i=int(i)
+        
+        if recipe_id is None:
+            recipe_id=0
+        else:
+            recipe_id=(recipe_id)
 
         if name is None:
             name="no name"
@@ -122,12 +181,8 @@ class InferencePreprocessingRecipes():
         if tags is None:
             tags="no tags"
         else:
-            tags=" [SEP] ".join(ast.literal_eval(tags).replace("-"," "))
+            tags=" [SEP] ".join(ast.literal_eval(tags)).replace("-"," ")
         
-        if calorie_level is not None:
-            calorie_level=int(calorie_level)
-        else:
-            calorie_level=0
 
         if ingredient_ids is not None:
             if not isinstance(ingredient_ids,list):
@@ -157,35 +212,40 @@ class InferencePreprocessingRecipes():
                     nutrition=nutrition[:self.n_nutrition]
                 nutrition=np.pad(nutrition,pad_width=(0,self.n_nutrition-len(nutrition)))
             else:
+                nutrition=list(map(float,nutrition))
                 if len(nutrition)>self.n_nutrition:
                     nutrition=nutrition[:self.n_nutrition]
                 nutrition=np.pad(nutrition,pad_width=(0,self.n_nutrition-len(nutrition)))
         else:
             nutrition=[0]*self.n_nutrition
 
-        if n_steps is None and steps is not None:
-            n_steps=steps.count("[SEP]")
+        if n_steps is None:
+            if steps is not None:
+                n_steps=steps.count("[SEP]")
+            else:
+                n_steps=0
         else:
-            n_steps=0
+            n_steps=int(n_steps)
         
         if techniques_recipes is not None:
             if not isinstance(techniques_recipes,list):
                 techniques_recipes=list(map(int, ast.literal_eval(techniques_recipes)))
                 if len(techniques_recipes)>self.n_techniques_recipes:
                     techniques_recipes=techniques_recipes[:self.n_techniques_recipes]
-                techniques_recipes=np.pad(techniques_recipes,pad_width=(0,self.self.n_techniques_recipes-len(techniques_recipes)))
+                techniques_recipes=np.pad(techniques_recipes,pad_width=(0,self.n_techniques_recipes-len(techniques_recipes)))
             else:
+                techniques_recipes=list(map(int,techniques_recipes))
                 if len(techniques_recipes)>self.n_techniques_recipes:
                     techniques_recipes=techniques_recipes[:self.n_techniques_recipes]
-                techniques_recipes=np.pad(techniques_recipes,pad_width=(0,self.self.n_techniques_recipes-len(techniques_recipes)))
+                techniques_recipes=np.pad(techniques_recipes,pad_width=(0,self.n_techniques_recipes-len(techniques_recipes)))
         else:
-            techniques_recipes=[0]*self.n_techniques_recipes
+            techniques_recipes=[0.0]*self.n_techniques_recipes
         
-        ingredient_ids_continuous=[self.ingredient_continuous_ids[i] if i in self.ingredient_continuous_ids.index else 0 for i in ingredient_ids]
+        ingredient_ids_continuous=[self.ingredient_continuous_ids_serie[i] if i in self.ingredient_continuous_ids_serie.index else 0 for i in ingredient_ids]
 
         full_text=name+" [SEP] "+description+" [SEP] "+steps+" [SEP] "+tags
 
-        return recipe_id,i,name,description,tags,calorie_level,n_ingredients,ingredient_ids,nutrition,n_steps,steps,techniques_recipes,ingredient_ids_continuous,full_text
+        return recipe_id,i,name,description,tags,n_ingredients,ingredient_ids,nutrition,n_steps,steps,techniques_recipes,ingredient_ids_continuous,full_text
 
 
 
@@ -197,19 +257,87 @@ class InferencePreprocessingUsers():
                  max_len_items,
                  n_techniques_users,
                  scaler_user):
+        
         self.train_df=train_df.copy()
         self.max_len_items=max_len_items
         self.scaler_user=scaler_user
         self.n_techniques_users=n_techniques_users
+
+        self.agg_user_recipes=self.train_df.groupby("user_id")["recipe_id"].agg("count")
+        self.agg_user_ratings=self.train_df.groupby("user_id")["rating"].agg(["count",lambda x: x.mode().iloc[0]]).rename(columns={'<lambda_0>':"mode"})
+        self.mode_rating=self.train_df["rating"].mode().iloc[0]
+    
+    def preprocessing(self,
+                      user_id=None,
+                      ratings=None,
+                      items=None,
+                      techniques_users=None,
+                      n_items=None,
+                      n_ratings=None):
+        
+        user_id,ratings,items,techniques_users,ratings_scaled=self.before_split_processing(user_id=user_id,
+                                                                                           ratings=ratings,
+                                                                                           items=items,
+                                                                                           techniques_users=techniques_users,
+                                                                                           )
+        
+        n_items,n_ratings=self.after_split_preprocessing(user_id=user_id,
+                                                         n_items=n_items,
+                                                         n_ratings=n_ratings
+                                                         )
+        
+        n_items_scaled,n_ratings_scaled=self.scale(n_items=n_items,
+                                                   n_ratings=n_ratings)
+        
+
+        items=torch.tensor(items).reshape(1,-1).long()
+        techniques_users=torch.tensor(techniques_users).reshape(1,-1).float()
+        n_items_scaled=torch.tensor([n_items_scaled]).reshape(1,-1).float()
+        ratings_scaled=torch.tensor(ratings_scaled).reshape(1,-1).float()
+        n_ratings_scaled=torch.tensor([n_ratings_scaled]).reshape(1,-1).float()
+
+        return items,techniques_users,n_items_scaled,ratings_scaled,n_ratings_scaled
+
+    def scale(self,
+              n_items,
+              n_ratings):
+        
+        X=np.array([n_items,n_ratings], dtype=np.float32).reshape(1,-1)
+        X_scaled=self.scaler_user.transform(X)
+        n_items_scaled=X_scaled[0,0]
+        n_ratings_scaled=X_scaled[0,1]
+
+        return n_items_scaled,n_ratings_scaled
+    
+    def after_split_preprocessing(self,
+                                  user_id,
+                                  n_items=None,
+                                  n_ratings=None,
+                                  ):
+        
+        if n_items is not None:
+            n_items=int(n_items)
+        else:
+            if user_id in self.agg_user_recipes.index and self.agg_user_recipes.loc[user_id] is not None:
+                n_items=self.agg_user_recipes.loc[user_id]
+            else:
+                n_items=0
+
+        if n_ratings is not None:
+            n_ratings=int(n_ratings)
+        else:
+            if user_id in self.agg_user_ratings.index and self.agg_user_ratings.index.loc[user_id]["count"] is not None:
+                n_ratings=self.agg_user_ratings.loc[user_id]["count"]
+            else:
+                n_ratings=0
+
+        return n_items,n_ratings,
     
     def before_split_processing(self,
-                                user_id,
-                                rating,
-                                ratings,
-                                n_ratings,
-                                items,
-                                n_items,
-                                techniques_users
+                                user_id=None,
+                                ratings=None,
+                                items=None,
+                                techniques_users=None
                                 ):
         
         if user_id is not None:
@@ -220,62 +348,44 @@ class InferencePreprocessingUsers():
         if ratings is not None:
             if not isinstance(ratings,list):
                 ratings=list(map(int, ast.literal_eval(ratings)))
-                true_len_ratings=len(ratings)
                 if len(ratings)>self.max_len_items:
                     ratings=ratings[:self.max_len_items]
-                ratings=list(np.pad(ratings,pad_width=(self.max_len_items-len(ratings))))
+                ratings=list(np.pad(ratings,pad_width=(0,self.max_len_items-len(ratings))))
             else:
-                ratings=list(map(int,ratings))
-                true_len_ratings=len(ratings)
                 if len(ratings)>self.max_len_items:
                     ratings=ratings[:self.max_len_items]
-                ratings=list(np.pad(ratings,pad_width=(self.max_len_items-len(ratings))))
+                ratings=list(np.pad(ratings,pad_width=(0,self.max_len_items-len(ratings))))
         else:
             ratings=[0]*self.max_len_items
-            true_len_ratings=0
-        
-        if n_ratings is not None:
-            n_ratings=int(n_ratings)
-        else:
-            n_ratings=true_len_ratings
         
         if techniques_users is not None:
             if not isinstance(techniques_users,list):
                 techniques_users=list(map(int, ast.literal_eval(techniques_users)))
-                techniques_users=len(techniques_users)
                 if len(techniques_users)>self.n_techniques_users:
                     techniques_users=techniques_users[:self.n_techniques_users]
                 techniques_users=list(np.pad(techniques_users,pad_width=(0,self.n_techniques_users-len(techniques_users))))
             else:
-                techniques_users=list(map(int,techniques_users))
                 if len(techniques_users)>self.n_techniques_users:
                     techniques_users=techniques_users[:self.n_techniques_users]
                 techniques_users=list(np.pad(techniques_users,pad_width=(0,self.n_techniques_users-len(techniques_users))))
-                techniques_users=len(techniques_users)
         else:
             techniques_users=[0]*self.n_techniques_users
-            techniques_users=0
         
         if items is not None:
             if not isinstance(items,list):
                 items=list(map(int, ast.literal_eval(items)))
-                true_len_items=len(items)
                 if len(items)>self.max_len_items:
                     items=items[:self.max_len_items]
-                items=list(np.pad(ratings,pad_width=(self.max_len_items-len(items))))
+                items=list(np.pad(items,pad_width=(0,self.max_len_items-len(items))))
             else:
-                items=list(map(int,items))
-                true_len_items=len(items)
                 if len(ratings)>self.max_len_items:
                     ratings=ratings[:self.max_len_items]
-                ratings=list(np.pad(ratings,pad_width=(self.max_len_items-len(items))))
+                items=list(np.pad(items,pad_width=(0,self.max_len_items-len(items))))
         else:
-            ratings=[0]*self.max_len_items
-            true_len_items=0
+            items=[0]*self.max_len_items
         
-        if n_items is not None:
-            n_items=int(n_items)
-        else:
-            n_items=true_len_items
+        ratings_scaled=list(map(lambda x : x/5, ratings))
+
         
+        return user_id,ratings,items,techniques_users,ratings_scaled
 

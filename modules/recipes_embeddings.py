@@ -18,7 +18,7 @@ class RecipesEmbeddingsExtractor():
             for batch in dataloader:
                 for key in list(batch.keys()):
                     batch[key]=batch[key].to(self.device)
-                recipes_embeddings=self.model.forward_recipes(technique_recipes=batch["technique_recipes"],
+                recipes_embeddings=self.model.forward_recipes(techniques_recipes=batch["techniques_recipes"],
                                                               calorie_level_scaled=batch["calorie_level_scaled"],
                                                               ingredient_ids_continuous=batch["ingredient_ids_continuous"],
                                                               minutes_scaled=batch["minutes_scaled"],

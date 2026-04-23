@@ -131,7 +131,7 @@ class RecommendationModel(nn.Module):
 
     
     def forward(self,
-                technique_recipes, #recipes
+                techniques_recipes, #recipes
                 calorie_level_scaled, #recipes
                 ingredient_ids_continuous, #recipes
                 techniques_users, #users
@@ -154,7 +154,7 @@ class RecommendationModel(nn.Module):
                                              n_items_scaled,
                                              ratings_scaled,
                                              n_ratings_scaled)
-          recipe_embeddings=self.forward_recipes(technique_recipes,
+          recipe_embeddings=self.forward_recipes(techniques_recipes,
                                                  calorie_level_scaled,
                                                  ingredient_ids_continuous,
                                                  minutes_scaled,
@@ -209,7 +209,7 @@ class RecommendationModel(nn.Module):
           return user_embeddings
     
     def forward_recipes(self,
-                          technique_recipes,
+                          techniques_recipes,
                           calorie_level_scaled,
                           ingredient_ids_continuous,
                           minutes_scaled,
@@ -248,12 +248,12 @@ class RecommendationModel(nn.Module):
           nutrition=nn.functional.dropout(nutrition,p=self.projec_dropout,training=self.training)
           nutrition=self.norm_nutrition(nutrition)
 
-          technique_recipes=self.first_norm_techniques_recipes(technique_recipes)
-          technique_recipes=self.projection_techniques_recipes(technique_recipes)
-          technique_recipes=nn.functional.dropout(technique_recipes,p=self.projec_dropout,training=self.training)
-          technique_recipes=self.norm_techniques_recipes(technique_recipes)
+          techniques_recipes=self.first_norm_techniques_recipes(techniques_recipes)
+          techniques_recipes=self.projection_techniques_recipes(techniques_recipes)
+          techniques_recipes=nn.functional.dropout(techniques_recipes,p=self.projec_dropout,training=self.training)
+          techniques_recipes=self.norm_techniques_recipes(techniques_recipes)
 
-          recipe_embeddings=torch.cat([concat_add_features_recipes,nutrition,technique_recipes,projected_full_text,projected_encoded_ingredients],dim=1)
+          recipe_embeddings=torch.cat([concat_add_features_recipes,nutrition,techniques_recipes,projected_full_text,projected_encoded_ingredients],dim=1)
           recipe_embeddings=self.recipe_fnn(recipe_embeddings)
           recipe_embeddings=nn.functional.normalize(recipe_embeddings)
           return recipe_embeddings

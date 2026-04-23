@@ -31,7 +31,7 @@ class Test():
             for batch in self.test_dataloader:
                 for key in list(batch.keys()):
                     batch[key]=batch[key].to(self.device)
-                outputs=self.model(technique_recipes=batch["technique_recipes"],
+                outputs=self.model(techniques_recipes=batch["techniques_recipes"],
                                    calorie_level_scaled=batch["calorie_level_scaled"],
                                    ingredient_ids_continuous=batch["ingredient_ids_continuous"],
                                    techniques_users=batch["techniques_users"],
