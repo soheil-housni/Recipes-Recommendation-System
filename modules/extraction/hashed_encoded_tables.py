@@ -27,7 +27,7 @@ class EncodedHashedEmbeddings():
         hash_func=np.vectorize(lambda i,k: mmh3.hash(str(int(i)), seed=int(k)))
         I,K=np.meshgrid(np.arange(self.n_recipe_ids+2),np.arange(self.recipe_id_emb_dim),indexing="ij")
         HASH=hash_func(I,K)% self.recipes_bucket_size
-        recipes_ids_encoded_embeddings= torch.tensor(2*(HASH/self.recipes_bucket_size)-1,dtype=torch.float32)
+        recipes_ids_encoded_embeddings= torch.tensor(2*(HASH/(self.recipes_bucket_size-1))-1,dtype=torch.float32)
         torch.save(recipes_ids_encoded_embeddings,f"{path}/hashed_embeddings_recipes.pt")
 
 
