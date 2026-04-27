@@ -2,6 +2,8 @@ import uvicorn
 from fastapi import FastAPI
 from .recommendation_pipeline import recommendation
 from .request_data import RequestData   
+from pathlib import Path
+import os
 
 app=FastAPI()
 
@@ -21,6 +23,11 @@ def recommend_recipes(data:RequestData):
                                        n_recommended_recipes=data.n_recommended_recipes)
     recommended_recipes=recommended_recipes.to_dict(orient="records")
     return recommended_recipes
+
+if __name__=="__main__":
+    BASE_DIR=Path(__file__).resolve().parents[2]
+    os.chdir(f'{BASE_DIR}')
+    uvicorn.run(app="modules.API.app:app",host="0.0.0.0",port=8000,reload=True)
     
 
 #uvicorn modules.API.app:app --reload   

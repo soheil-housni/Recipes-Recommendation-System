@@ -10,8 +10,6 @@ class EncodedHashedEmbeddings():
                  n_ingredients_ids,
                  ingredient_id_emb_dim
                  ):
-        super().__init__()
-
         self.n_recipe_ids=n_recipes_ids
         self.recipes_bucket_size=int(0.2*self.n_recipe_ids)
         self.recipe_id_emb_dim=recipe_id_emb_dim
@@ -21,7 +19,7 @@ class EncodedHashedEmbeddings():
         self.ingredient_id_emb_dim=ingredient_id_emb_dim
     
     def get_encoded_hashed_embeddings(self,
-                              path:str):
+                                      path:str):
         
 
         hash_func=np.vectorize(lambda i,k: mmh3.hash(str(int(i)), seed=int(k)))
