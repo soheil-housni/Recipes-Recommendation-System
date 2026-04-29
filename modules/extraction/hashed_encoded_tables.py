@@ -10,6 +10,7 @@ class EncodedHashedEmbeddings():
                  n_ingredients_ids,
                  ingredient_id_emb_dim
                  ):
+        
         self.n_recipe_ids=n_recipes_ids
         self.recipes_bucket_size=int(0.2*self.n_recipe_ids)
         self.recipe_id_emb_dim=recipe_id_emb_dim

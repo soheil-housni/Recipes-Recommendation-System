@@ -20,7 +20,7 @@ def initialisation():
 
     recipes_embeddings=torch.load("./modules/recipes_set/recipes_embeddings.pt")
 
-    recipes_parquet_file=pq.ParquetFile("./modules//recipes_set/recipes_df.parquet")
+    recipes_parquet_file=pq.ParquetFile("./modules/recipes_set/recipes_df.parquet")
     recipes_df=load(recipes_parquet_file)
 
     scaler_user=joblib.load("./modules/scalers/scaler_users.pkl")
