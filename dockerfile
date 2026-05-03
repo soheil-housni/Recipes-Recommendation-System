@@ -1,7 +1,11 @@
 FROM python:3.10-slim
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install -r requirements.txt && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    torch==2.8.0 \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements.txt
 COPY . .
 COPY ./mlflow_runs/mlruns/models/. ./mlflow_runs/mlruns/models/
 COPY ./mlflow_runs/mlruns/896236271089450697/7edda145087b428f97b3f753e1301f0b/. ./mlflow_runs/mlruns/896236271089450697/7edda145087b428f97b3f753e1301f0b/
